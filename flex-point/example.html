@@ -1,0 +1,40 @@
+<html>
+    <head>
+        <title>FLEX-POINT-EXAMPLE</title>
+    <script src="../js/v4v.js"></script>
+    <script>
+        v4v.ready(function(){
+            var stage = v4v.stage(document.getElementById("exampleContainer"));
+            var h = 0;
+            var v = 0;
+            var cols = 40;
+            var space = {x:20,y:20};
+            var totalPoints = 1600;
+            var pointList = [];
+
+            for(var i = 0;i<totalPoints;i++){
+                var fp = v4v.flexPoint(space.x*h, space.y*v, 80, 60, false);
+                var circle = v4v.circle(stage,{cx:space.x*h,cy:space.y*v,r:2});
+                pointList.push({point:fp,element:circle});
+                h++;
+                if(h>=cols){
+                    h=0;
+                    v++;
+                }
+            }
+
+            stage.getElement().addEventListener('mousemove',function(e){
+                for(var i = 0;i<pointList.length;i++){
+                    pointList[i].point.reposition({x:e.pageX,y:e.pageY});
+                    pointList[i].element.attr('cx',pointList[i].point.getPosition().x);
+                    pointList[i].element.attr('cy',pointList[i].point.getPosition().y);
+                }
+            });
+            
+        });
+    </script>
+    </head>
+    <body>
+        <svg style="width:1000px; height: 800px;" id="exampleContainer"></svg>
+    </body>
+</html>
