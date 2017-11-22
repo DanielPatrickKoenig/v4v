@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BAR CHART EXAMPLE</title>
+    <script src="../js/v4v.js"></script>
+    <script>
+        v4v.ready(function(){
+            var stage = v4v.stage(document.getElementById("barChartExample"));
+            v4v.bar(stage, [20,40,12], ["#cc00cc","#00cccc","#cccc00"], 100, 100, "Example", ["Yesterday","Today","Tomorrow"], 500, 120, 100, 200, false);
+        });
+    </script>
+</head>
+<body>
+    <svg id="barChartExample" style="width:1000px;height:700px;"></svg>
+</body>
+</html>

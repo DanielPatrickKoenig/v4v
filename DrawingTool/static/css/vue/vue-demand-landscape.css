@@ -1,0 +1,28 @@
+.landing-title {
+    position: relative;
+    background-color: #B43C96;
+    color: #ffffff;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid #EDE8D7;
+}
+
+.landing-title h1 {
+    font-size: 5rem;
+    border-bottom: 1px solid #ffffff;
+}
+
+.landing-nav {
+    position: relative;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+.landing-background-info {
+    position: relative;
+    background-color: #EDE8D7;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+    border-top: 1px solid #B43C96;
+    border-bottom: 1px solid #B43C96;
+}

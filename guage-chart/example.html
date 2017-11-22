@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PIE CHART EXAMPLE</title>
+    <script src="../js/v4v.js"></script>
+    <script>
+        v4v.ready(function(){
+            var stage = v4v.stage(document.getElementById("barChartExample"));
+            v4v.guage(stage, 81, ["#cc00cc","#00cccc","#cccc00"], 200, 200, "Sentiment", 180, 12, 100, 0, false);
+        });
+    </script>
+</head>
+<body>
+    <svg id="barChartExample" style="width:1000px;height:700px;"></svg>
+</body>
+</html>
