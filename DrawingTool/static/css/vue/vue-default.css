@@ -1,0 +1,41 @@
+.landing-title {
+    position: relative;
+    background-color: #ffffff;
+    background-color: rgba(255,255,255,0.5);
+}
+
+.landing-title h1 {
+    font-size: 5rem;
+}
+.landing-title p.lead {
+}
+
+.landing-nav {
+    position: relative;
+    padding-top: calc(2rem + 2px);
+    padding-bottom: calc(2rem + 2px);
+}
+
+.landing-nav-logo {
+    min-height: 85px;
+}
+
+.landing-nav-btn {
+    margin: 0;
+    padding: 20px;
+}
+
+.landing-nav-tbd {
+    opacity: 0.4;
+    filter: alpha(opacity=40);
+}
+
+.landing-background-info {
+    position: relative;
+    background-color: #ffffff;
+    background-color: rgba(255,255,255,0.5);
+}
+
+.flex-panel-body {
+    max-height: 250px;
+}

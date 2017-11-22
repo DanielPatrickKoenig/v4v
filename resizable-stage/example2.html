@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <script src="https://unpkg.com/vue"></script>
+    <script src="../js/v4v.js"></script>
+    <script>
+        (function(){
+            
+
+            var sessionID = Math.random().toString().split(".").join("")+Math.random().toString().split(".").join("")+Math.random().toString().split(".").join("");
+            var IMAGE = {id:"image_"+sessionID,label:"Image"};
+            var YOUTUBE = {id:"youtube_"+sessionID,label:"YouTube"};
+            var IFRAME = {id:"iframe"+sessionID,label:"iFrame"};
+            var SHAPE = {id:"shape_"+sessionID,label:"Shape"};
+            var TEXT = {id:"text_"+sessionID,label:"Text"};
+            var HTML = {id:"html_"+sessionID,label:"HTML"};
+            var currentRenderType = IMAGE.id;
+            v4v.ready(function(){
+                var stage = v4v.stage(document.getElementById("resizableExample"));
+                var rs = v4v.resizableStage(stage,onAdded,onSelected,onResized,onDeleted,onDeslected);
+                document.getElementById("addButton").addEventListener("click",function(){
+                    document.getElementById("addDialogue").style.display = "block";
+                });
+
+                document.getElementById("confirmAdd").addEventListener("click",function(){
+                    rs.add();
+                    
+                });
+
+                // var uiVue = new Vue({
+                //     el:'#addDialogue',
+                //     data:{
+                //         sections:[IMAGE.id,YOUTUBE.id,IFRAME.id,SHAPE.id,TEXT.id,HTML.id],
+                //         image
+                //         title: "SECTION TITLE!!",
+                //         items: _data["data"],
+                //         chartContainers:["dvContainerr","dvContainerr2"]
+                //     },
+                //     methods:{            
+                //         function1:function(){
+                //             //alert('your ran it'); 
+                //         }
+                //     },
+                //     delimiters: ["<%","%>"]
+                // });
+            });
+            function onAdded(_id,_dimensions){
+                var pnt = createElement("div",{id:"parent"+_id,style:"position:absolute;"})
+                document.getElementById("resizableMirror").appendChild(pnt);
+                var elementID = "child"+_id;
+                switch(currentRenderType){
+                    case IMAGE.id:
+                    {
+                        pnt.appendChild(createElement("img",{src:document.getElementById("imageInput").value,id:elementID,style:"position:absolute;"}));
+                        break;
+                    }
+                    case YOUTUBE.id:
+                    {
+                        //<iframe width="560" height="315" src="https://www.youtube.com/embed/C3WoJ70KweE" frameborder="0" allowfullscreen></iframe>
+
+                        pnt.appendChild(createElement("iframe",{src:document.getElementById("imageInput").value,id:elementID,style:"position:absolute;",frameborder:0,allowfullscreen:"true"}));
+                        break;
+                    }
+                    case IFRAME.id:
+                    {
+                        break;
+                    }
+                    case SHAPE.id:
+                    {
+                        break;
+                    }
+                    case TEXT.id:
+                    case HTML.id:
+                    {
+                        var txt = createElement("div",{id:elementID,style:"position:absolute;"});
+                        txt.innerHTML = document.getElementById("imageInput").value;
+                        pnt.appendChild(txt);
+                        break;
+                    }
+                    
+                }
+                //pnt.appendChild(createElement("img",{src:document.getElementById("imageInput").value,id:"child"+_id,style:"position:absolute;"}));
+                document.getElementById("addDialogue").style.display = "none";
+                mapDimensions(_id,_dimensions);
+            }
+            function onSelected(_id,_dimensions){
+                //console.log("Selected: "+_id);
+                //console.log(_dimensions);
+                mapDimensions(_id,_dimensions);
+            }
+            function onResized(_id,_dimensions){
+                //console.log("Resized: "+_id);
+                //console.log(_dimensions);
+                mapDimensions(_id,_dimensions);
+            }
+            function onDeleted(_id){
+                //console.log("Deleted: "+_id);
+                document.getElementById("resizableMirror").removeChild(document.getElementById("parent"+_id));
+            }
+            function onDeslected(_id){
+                //console.log("Deselected: "+_id);
+
+            }
+
+            function createElement (tag, attrs) {
+                //attrs.xmlns = 'http://www.w3.org/2000';
+                //var el = document.createElementNS('http://www.w3.org/2000',tag);
+                var el = document.createElement(tag);
+                for (var k in attrs) {
+                    var kName = k;
+                    el.setAttribute(kName, attrs[k]);
+                }
+                return el;
+            }
+            function mapDimensions(_id,_dimensions){
+                var delimiter = _dimensions.p.split("translate(")[1].split(")")[0].split(",").length>1 ? "," : " ";
+                var rotation = 0;
+
+                if(_dimensions.c != null && _dimensions.c != undefined && _dimensions.c.split("rotate(").length>1){
+                    rotation = _dimensions.c.split("rotate(")[1].split(",")[0].split(" ")[0];
+                    //console.log(rotation);
+                }
+
+                var pPosition = {x:0,y:0};
+                var cPosition = {x:0,y:0};
+
+                
+                var rString = "-webkit-transform: rotate("+rotation+"deg);-moz-transform: rotate("+rotation+"deg);-o-transform: rotate("+rotation+"deg);-ms-transform: rotate("+rotation+"deg);transform: rotate("+rotation+"deg);";
+                var sizeString = "width:"+_dimensions.width+"px;height:"+_dimensions.height+"px;";
+
+                var positionString = "margin-left:"+(_dimensions.width/-2)+"px;margin-top:"+(_dimensions.height/-2)+"px;";
+                document.getElementById("parent"+_id).setAttribute("style","position:absolute;top:"+_dimensions.center.y.toString()+"px;left:"+_dimensions.center.x.toString()+"px;"+rString);
+                document.getElementById("child"+_id).setAttribute("style","position:absolute;"+sizeString+positionString);
+            }
+        })();
+        
+    </script>
+</head>
+<body>
+    
+    <svg id="resizableExample" style="width:1000px;height:700px;position: absolute; z-index: 100;"></svg>
+    <div id="resizableMirror" style="width:1000px;height:700px;position: relative; z-index: 50;margin-top:50px;"></div>
+    <button id="addButton" style="position: absolute; top:0;left:0;">Add</button>
+    <div id="addDialogue" style="width:500px;height: 300px; background-color: #cccccc; position: absolute;left:200px;top:200px;z-index: 200;display: none;"><input id="imageInput" type="text"></input><button id="confirmAdd">Confirm</button></div>
+</body>
+</html>
