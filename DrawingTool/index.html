@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title></title>
+  <link rel="stylesheet" href="css/bootstrap.min.css"/>
+  <script src="js/jquery.js"></script>
+  <script src="js/vue-library/vue.js"></script>
+  <script src="js/vue-library/axios.min.js"></script>
+  <script src="js/vue-library/tween.min.js"></script>
+
+  <script type="text/javascript" src="js/vue/vue-main.js"></script>
+  <link rel="stylesheet" href="css/vue/vue-main.css">
+
+  <script src="js/vue-library/vue.js"></script>
+  <script src="js/vue-library/axios.min.js"></script>
+  <script src="js/vue-library/tween.min.js"></script>
+
+
+  <script src="js/modernizr-2.8.3.min.js"></script>
+
+  <script src="js/vue-library/es6-promise.min.js"></script>
+  <script src="js/vue-library/es6-promise.auto.min.js"></script>
+
+  <!-- <script src="/JourneyMapper/static/js/v4v.js"></script> -->
+
+  <script src="../js/v4v.js"></script>
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="menu-bg-div"></div>
+  <div id="drawingContainer" v-on:mousemove="onMouseMove" v-on:mouseup="onMouseUp">
+    <div v-if="saving" class="save-dialogue ui-dialogue">
+      <div class="ui-dialogue-buttons"><button v-on:click="saveDrawing">Save</button><button v-on:click="cancelDialogue">Cancel</button></div>
+    </div>
+    <div v-else-if="loading" class="load-dialogue ui-dialogue">
+      <ul>
+        <li v-for="(v,i) in loadTypes" v-bind:style="loadType==i ? 'font-weight:bold;' : ''"><a v-on:click="loadType = i">{%v%}</a></li>
+      </ul>
+      <input v-on:change="onFileLoadChange" v-if="loadType == 0" type="file" name="svg_file">
+      <textarea v-model="loadedString" v-if="loadType == 1"></textarea>
+      <div class="ui-dialogue-buttons"><button v-on:click="loadDrawing">Load</button><button v-on:click="cancelDialogue">Cancel</button></div>
+    </div>
+    <div class="right-menu">
+
+      <ul class="mode-menu">
+        <li v-for="m in modes" v-bind:id="'application_mode_'+m" v-bind:class="'mode-button '+m"><input v-bind:id="m" type="radio" v-bind:value="m" v-model="currentMode" /><label v-bind:for="m">{%m%}</label></li>
+      </ul>
+      <svg id="directiveMenu" v-bind:class="'drawing-'+currentDrawCommand">
+        <path style="display: none;" v-for="(d,v,i) in drawCommandPaths" v-bind:d="d" v-bind:class="'directive-'+v"></path>
+      </svg>
+      <ul class="directive-list">
+        <li v-for="(p,i) in points">
+          <span>{%serializePoints([p],true)%}</span>
+          <input type="checkbox" v-bind:id="'point_'+i.toString()" v-on:change="onToggleDirective" class="directive-toggle" v-bind:toggle_index="i"/><label v-bind:for="'point_'+i.toString()"><span class="glyphicon glyphicon-chevron-up opened"></span><span class="glyphicon glyphicon-chevron-down closed"></span></label>
+          <div>
+
+            <ul class="property-list" v-for="(x,m) in p">
+              <li>{%m==p.length-1 ? 'Joint' : 'Anchor'%}</li>
+              <li v-for="(v,y,j) in x" v-if="y!='command'">
+                <label>{%labelMatrix[y]%}</label>
+                <div class="radius-control" v-if="y=='rx'">
+                  <!-- <svg v-bind:id="'rxControl_'+i.toString()+'_'+j.toString()" v-bind:style="'width:'+controlDimensions.width+'px; height:'+(controlDimensions.sideRadiusHandle*2).toString()+'px;'">
+                    <circle v-bind:r="controlDimensions.sideRadiusHandle" v-bind:cx="Number(points[i][m][y])+controlDimensions.sideRadiusHandle" v-bind:cy="controlDimensions.sideRadiusHandle" v-on:mousedown="onRXPressed(i,'rxControl_'+i.toString()+'_'+j.toString())"></circle>
+                  </svg> -->
+                  <input class="radius-field" v-bind:id="'input_field_'+i.toString()+'_'+m.toString()+'_'+y.toString()" v-bind:value="v" type="number" v-model="points[i][m][y]" v-on:keydown="onEnterTextValue" v-on:keyup="onEnterTextValue" />
+                </div>
+                <div class="radius-control" v-else-if="y=='ry'">
+                  <!-- <svg v-bind:id="'ryControl_'+i.toString()+'_'+j.toString()" v-bind:style="'width:'+controlDimensions.width+'px; height:'+(controlDimensions.sideRadiusHandle*2).toString()+'px;'">
+                    <circle v-bind:r="controlDimensions.sideRadiusHandle" v-bind:cx="Number(points[i][m][y])+controlDimensions.sideRadiusHandle" v-bind:cy="controlDimensions.sideRadiusHandle" v-on:mousedown="onRYPressed(i,'ryControl_'+i.toString()+'_'+j.toString())"></circle>
+                  </svg> -->
+                  <input class="radius-field" v-bind:id="'input_field_'+i.toString()+'_'+m.toString()+'_'+y.toString()" v-bind:value="v" type="number" v-model="points[i][m][y]" v-on:keydown="onEnterTextValue" v-on:keyup="onEnterTextValue" />
+                </div>
+                <div class="angle-control" v-else-if="y=='angle'">
+                  <svg v-bind:id="'angleControl_'+i.toString()+'_'+j.toString()" v-bind:style="'width:'+controlDimensions.width+'px; height:'+controlDimensions.height+'px;'">
+                    <circle class="center-circle" v-bind:r="(controlDimensions.width/2)-(controlDimensions.sideRotationHandle*1.5)" v-bind:cx="controlDimensions.width/2" v-bind:cy="controlDimensions.width/2"></circle>
+                    <circle v-bind:r="controlDimensions.sideRotationHandle" v-bind:cx="getRotationPosition(i,true,true)" v-bind:cy="getRotationPosition(i,false,true)" v-on:mousedown="onRotationPressed(i,'angleControl_'+i.toString()+'_'+j.toString())"></circle>
+                  </svg>
+                  <input class="angle-field" v-bind:id="'input_field_'+i.toString()+'_'+m.toString()+'_'+y.toString()" v-bind:value="v" type="number" v-model="points[i][m][y]" v-on:keydown="onEnterTextValue" v-on:keyup="onEnterTextValue" />
+                </div>
+                <div v-bind:class="v==1 ? 'bool-control on-mode' : 'bool-control'" v-else-if="y=='arc'">
+                  <svg v-bind:id="'ryControl_'+i.toString()+'_'+j.toString()" v-bind:style="'width:'+(controlDimensions.sideRadiusHandle*3.5)+'px; height:'+(controlDimensions.sideRadiusHandle*2).toString()+'px;'">
+                    <circle v-bind:r="controlDimensions.sideRadiusHandle" v-bind:cy="controlDimensions.sideRadiusHandle" v-bind:cx="v==1 ? controlDimensions.sideRadiusHandle*2.5 : controlDimensions.sideRadiusHandle"></circle>
+                  </svg>
+                  <span>{% v==1 ? 'ON' : 'OFF' %}</span>
+                  <input v-bind:id="'input_field_'+i.toString()+'_'+m.toString()+'_'+y.toString()" v-bind:checked='v==1' type="checkbox" v-bind:point-index="i" v-bind:sub-index="m" v-bind:attribute-name="y" v-on:change="onCheckArchClicked" />
+                </div>
+                <div v-bind:class="v==1 ? 'bool-control on-mode' : 'bool-control'" v-else-if="y=='sweep'">
+                  <svg v-bind:id="'ryControl_'+i.toString()+'_'+j.toString()" v-bind:style="'width:'+(controlDimensions.sideRadiusHandle*3.5)+'px; height:'+(controlDimensions.sideRadiusHandle*2).toString()+'px;'">
+                    <circle v-bind:r="controlDimensions.sideRadiusHandle" v-bind:cy="controlDimensions.sideRadiusHandle" v-bind:cx="v==1 ? controlDimensions.sideRadiusHandle*2.5 : controlDimensions.sideRadiusHandle"></circle>
+                  </svg>
+                  <span>{% v==1 ? 'ON' : 'OFF' %}</span>
+                  <input v-bind:id="'input_field_'+i.toString()+'_'+m.toString()+'_'+y.toString()" v-bind:checked='v==1' type="checkbox" v-bind:point-index="i" v-bind:sub-index="m" v-bind:attribute-name="y" v-on:change="onCheckArchClicked" />
+                </div>
+                <div v-else>
+                  <input v-bind:id="'input_field_'+i.toString()+'_'+m.toString()+'_'+y.toString()" v-bind:value="v" type="number" v-model="points[i][m][y]" v-on:keydown="onEnterTextValue" v-on:keyup="onEnterTextValue" />
+                </div>
+              </li>
+            </ul>
+          </div>
+        </li>
+      </ul>
+    </div>
+    
+    <svg v-bind:class="points.length>0 && toggledPointIndex>=0 ? 'drawing-board detail-view-active' : 'drawing-board'">
+      <rect class="board-background" v-if="currentMode != 'draw'" x="0" y="0" width="20000" height="20000" v-on:mousedown="onStagePressed"></rect>
+      <path class="rendered-shape" v-for="(s,i) in shapes" v-bind:d="serializePoints(s.points)" v-bind:stroke="s.stroke" v-bind:fill="s.fill" v-bind:stroke-width="s.strokeWidth" v-bind:shape-index="i" v-on:mousedown="shapeSelected"></path>
+      <path class="guide-path" v-if="points.length>0" v-bind:d="serializePoints(points)" v-bind:shape-index="selectedShape" v-on:mousedown="shapeSelected"></path>
+      <path class="detail-guide-path" v-if="points.length>0 && toggledPointIndex>=0 && points[toggledPointIndex][0].command!='M' && points[toggledPointIndex][0].command!='Z'" v-bind:d="serializePoints([[{command:'M',x:points[toggledPointIndex-1][points[toggledPointIndex-1].length-1].x,y:points[toggledPointIndex-1][points[toggledPointIndex-1].length-1].y}],points[toggledPointIndex]])" v-bind:shape-index="selectedShape" v-on:mousedown="shapeSelected"></path>
+      <rect class="board-background" v-if="currentMode == 'draw'" x="0" y="0" width="20000" height="20000" v-on:mousedown="onStagePressed"></rect>
+      <g v-if="currentMode==modes.SCALE">
+        <line v-for="(l,i) in sizingCircles" v-bind:x1="sizingCircles[i].cx" v-bind:y1="sizingCircles[i].cy" v-bind:x2="i==sizingCircles.length-1 ? sizingCircles[0].cx : sizingCircles[i+1].cx" v-bind:y2="i==sizingCircles.length-1 ? sizingCircles[0].cy : sizingCircles[i+1].cy" stroke="#000000" stroke-width="1"></line>
+        
+        <circle v-for="(c,i) in sizingCircles" v-bind:cx="c.cx" v-bind:cy="c.cy"  v-bind:r="controlDimensions.endPoint" v-on:mousedown="onResizeHandlePressed" v-bind:handle_index="i"></circle>
+      </g>
+      <g v-if="currentMode!=modes.SCALE">
+        <g v-for="(p,i) in points">
+          <g v-for="(v,j) in p" v-if="toggledPointIndex==-1 || toggledPointIndex==i">
+            <line class="anchor-line" v-if="j==1 && p.length==3" v-bind:x1="v.x != undefined ? v.x : getLastX(i)" v-bind:y1="v.y != undefined ? v.y : getLastY(i)" v-bind:x2="p[p.length-1].x" v-bind:y2="p[p.length-1].y"></line>
+            <line class="anchor-line" v-if="j==0 && p.length==3" v-bind:x1="v.x != undefined ? v.x : getLastX(i)" v-bind:y1="v.y != undefined ? v.y : getLastY(i)" v-bind:x2="points[i-1][points[i-1].length-1].x" v-bind:y2="points[i-1][points[i-1].length-1].y"></line>
+            <line class="anchor-line" v-if="j==0 && p.length==2" v-bind:x1="v.x != undefined ? v.x : getLastX(i)" v-bind:y1="v.y != undefined ? v.y : getLastY(i)" v-bind:x2="p[p.length-1].x" v-bind:y2="p[p.length-1].y"></line>
+            <g v-if="p[0].command == 'A'">
+              <circle class="arc-halo" v-bind:cx="getHalfPoint(p,points,i).x" v-bind:cy="getHalfPoint(p,points,i).y" r="40"></circle>
+              <path class="angle-path" v-bind:d="'M '+getHalfPoint(p,points,i).x+' '+getHalfPoint(p,points,i).y+' L '+getRotationPosition(i,true,false,6)+' '+getRotationPosition(i,false,false,6)+' L '+getRotationPosition(i,true,false,-6)+' '+getRotationPosition(i,false,false,-6)+' Z'"></path>
+              <line class="radius-line" v-bind:x1="getHalfPoint(p,points,i).x+controlDimensions.ry.x" v-bind:y1="getHalfPoint(p,points,i).y-(controlDimensions.ry.y+(p[0].ry*(controlDimensions.rx.length/(controlDimensions.width-(controlDimensions.sideRadiusHandle*2)))))" v-bind:x2="getHalfPoint(p,points,i).x+controlDimensions.ry.x" v-bind:y2="getHalfPoint(p,points,i).y+controlDimensions.ry.y+controlDimensions.ry.length"></line>
+              <line class="radius-line" v-bind:x1="getHalfPoint(p,points,i).x+controlDimensions.rx.x" v-bind:y1="getHalfPoint(p,points,i).y+controlDimensions.rx.y" v-bind:x2="getHalfPoint(p,points,i).x+controlDimensions.rx.x+(p[0].rx*(controlDimensions.rx.length/(controlDimensions.width-(controlDimensions.sideRadiusHandle*2))))" v-bind:y2="getHalfPoint(p,points,i).y+controlDimensions.rx.y"></line>
+
+              <line class="radius-line base-line" v-bind:x1="getHalfPoint(p,points,i).x+controlDimensions.rx.x" v-bind:x2="getHalfPoint(p,points,i).x+controlDimensions.rx.x" v-bind:y1="getHalfPoint(p,points,i).y+controlDimensions.rx.y-controlDimensions.rx.baseWidth" v-bind:y2="getHalfPoint(p,points,i).y+controlDimensions.rx.y+controlDimensions.rx.baseWidth"></line>
+
+              <line class="radius-line base-line" v-bind:y1="getHalfPoint(p,points,i).y+controlDimensions.ry.y+controlDimensions.ry.length" v-bind:y2="getHalfPoint(p,points,i).y+controlDimensions.ry.y+controlDimensions.ry.length" v-bind:x1="getHalfPoint(p,points,i).x+controlDimensions.ry.x-controlDimensions.ry.baseWidth" v-bind:x2="getHalfPoint(p,points,i).x+controlDimensions.ry.x+controlDimensions.ry.baseWidth"></line>
+              
+              <rect class="arch-bool-rect" v-bind:x="getHalfPoint(p,points,i).x+12" v-bind:y="getHalfPoint(p,points,i).y-12" width="18" height="10" rx="5" ry="5" v-on:click="sweepToggle(i)"></rect>
+              <rect class="arch-bool-rect" v-bind:x="getHalfPoint(p,points,i).x+12" v-bind:y="getHalfPoint(p,points,i).y+2" width="18" height="10" rx="5" ry="5" v-on:click="arcToggle(i)"></rect>
+          </g>
+            </g>
+          </g>
+        </g>
+      </g>
+
+      <g v-if="currentMode!=modes.SCALE">
+        <g v-for="(p,i) in points">
+          <circle class="joint-circle" v-for="(v,j) in p" v-if="(p[0].command != 'Z') && (toggledPointIndex==-1 || toggledPointIndex==i)" v-bind:r="j==p.length-1 ? 8 : 4" v-bind:command="p[0].command" v-bind:cx="v.x != undefined ? v.x : getLastX(i)" v-bind:cy="v.y != undefined ? v.y : getLastY(i)" v-bind:point-index="i" v-bind:sub-index="j" v-on:mousedown="onPointPress"></circle>
+          <circle class="virtual-circle" v-if="(i==0 && reserveAnchor != undefined) && (toggledPointIndex==-1 || toggledPointIndex==i)" r="4" command="reserveAnchor" v-bind:cx="reserveAnchor.x" v-bind:cy="reserveAnchor.y" point-index="-1" v-bind:sub-index="-1" v-on:mousedown="onPointPress"></circle>
+          <circle class="virtual-circle" v-if="(i==0 && startingAnchor != undefined) && (toggledPointIndex==-1 || toggledPointIndex==i)" r="4" command="startingAnchor" v-bind:cx="startingAnchor.x" v-bind:cy="startingAnchor.y" point-index="-2" v-bind:sub-index="-1" v-on:mousedown="onPointPress"></circle>
+          <g v-if="(p[0].command == 'A') && (toggledPointIndex==-1 || toggledPointIndex==i)">
+            <circle class="inline-slider-handle" v-bind:cx="getHalfPoint(p,points,i).x+controlDimensions.rx.x+(p[0].rx*(controlDimensions.rx.length/(controlDimensions.width-(controlDimensions.sideRadiusHandle*2))))" v-bind:cy="getHalfPoint(p,points,i).y+controlDimensions.rx.y" r="4" fill="#000000" v-on:mousedown="onRXPressed(i)"></circle>
+            <circle class="inline-slider-handle" v-bind:cx="getHalfPoint(p,points,i).x+controlDimensions.ry.x" v-bind:cy="getHalfPoint(p,points,i).y-(controlDimensions.ry.y+(p[0].ry*(controlDimensions.rx.length/(controlDimensions.width-(controlDimensions.sideRadiusHandle*2)))))" r="4" fill="#000000" v-on:mousedown="onRYPressed(i)"></circle>
+            
+            <circle class="inline-rotation-handle" v-bind:cx="getRotationPosition(i,true)" v-bind:cy="getRotationPosition(i)" r="4" v-on:mousedown="onRotationPressed(i)"></circle>
+
+            <circle v-bind:class="p[0].arc == 1 ? 'arc-toggle toggle-on' : 'arc-toggle'" v-bind:cx="p[0].arc == 1 ? getHalfPoint(p,points,i).x+12+5+8 : getHalfPoint(p,points,i).x+12+5" v-bind:cy="getHalfPoint(p,points,i).y-12+5" r="3"></circle>
+            <rect class="toggle-border" v-bind:x="getHalfPoint(p,points,i).x+12" v-bind:y="getHalfPoint(p,points,i).y-12" width="18" height="10" rx="5" ry="5" v-on:click="arcToggle(i)"></rect>
+            
+
+            <circle v-bind:class="p[0].sweep == 1 ? 'sweep-toggle toggle-on' : 'sweep-toggle'" v-bind:cx="p[0].sweep == 1 ? getHalfPoint(p,points,i).x+12+5+8 : getHalfPoint(p,points,i).x+12+5" v-bind:cy="getHalfPoint(p,points,i).y+2+5" r="3"></circle>
+            <rect class="toggle-border" v-bind:x="getHalfPoint(p,points,i).x+12" v-bind:y="getHalfPoint(p,points,i).y+2" width="18" height="10" rx="5" ry="5" v-on:click="sweepToggle(i)"></rect>
+
+          </g>
+        </g>
+      </g>
+    </svg>
+  </div>
+
+  <script src="js/main.js"></script>
+
+</body>
+</html>
