@@ -648,6 +648,8 @@ var v4v = (function() {
                 var targetRatio = max-min == 0 ? 0 : ((_updatedValue-min)/(max-min));
                 var updatedValue = targetRatio*100;
                 animationPoint.animate({x:(startAngle*-1) + ((startAngle*2)*(updatedValue/100))}, 1000, "in", function(){}, onMotion);
+
+
             }
 
             var animationPoint = new Point(needleAngle,0,0);
@@ -877,12 +879,13 @@ var v4v = (function() {
 
         // editing start
 
-        this.resizorWithRotation = function(_stage, _element, _handler,_offset,_deleteHandler){
-            return new ResizorWithRotation(_stage, _element,_handler,_offset,_deleteHandler);
+        this.resizorWithRotation = function(_stage, _element, _handler,_offset,_deleteHandler,_infoHandler){
+            return new ResizorWithRotation(_stage, _element,_handler,_offset,_deleteHandler,_infoHandler);
         }
 
-        function ResizorWithRotation(_stage, _element,_handler,_offset,_deleteHandler){
-            var _enableDelete = _deleteHandler != undefined
+        function ResizorWithRotation(_stage, _element,_handler,_offset,_deleteHandler,_infoHandler){
+            var _enableDelete = _deleteHandler != undefined;
+            var _enableInfo = _infoHandler != undefined;
             var shapeAngle = 0;
             var refCenter = {x:100,y:100};
 
@@ -1057,6 +1060,19 @@ var v4v = (function() {
                 deletePoly.getElement().addEventListener("click",deleteClicked);
             }
 
+            var infoButton;
+            var infoPoly;
+
+            if(_enableInfo){
+                infoButton = new Text(_stage, 0, 0, "E");
+                infoButton.attr("style","font-family:Arial;");
+                infoPoly = new Path(_stage,getInfoPoints());
+                infoPoly.attr("fill",'transparent');
+                //deletePoly.attr("stroke",'rgba(255,0,0,.4)');
+                positionInfo();
+                infoPoly.getElement().addEventListener("click",infoClicked);
+            }
+
             function rePlot(rawPoint){
                 return {
                     x:getOrbit(currentAngleData.c.x,getDistance(rawPoint.x,rawPoint.y,refCenter.x,refCenter.y),getAngle(rawPoint.x,rawPoint.y,refCenter.x,refCenter.y)+shapeAngle,"cos"),
@@ -1120,6 +1136,7 @@ var v4v = (function() {
                 
 
                 positionDelete();
+                positionInfo();
                 setDimensionAttributes(currentAngleData.c);
                 _handler(_element,Number(handles.tl.attr("cx")),Number(handles.tl.attr("cy")),getDistance(Number(handles.tr.attr("cx")),Number(handles.tr.attr("cy")),Number(handles.tl.attr("cx")),Number(handles.tl.attr("cy"))), getDistance(Number(handles.bl.attr("cx")),Number(handles.bl.attr("cy")),Number(handles.tl.attr("cx")),Number(handles.tl.attr("cy"))),shapeAngle);
                 
@@ -1162,6 +1179,7 @@ var v4v = (function() {
                 
 
                 positionDelete();
+                positionInfo();
                 setDimensionAttributes(currentAngleData.c);
                 /*
                 handles.tl.attr("cy",handles.tr.attr("cy"));
@@ -1208,6 +1226,7 @@ var v4v = (function() {
                 
 
                 positionDelete();
+                positionInfo();
                 setDimensionAttributes(currentAngleData.c);
                 // handles.bl.attr("cy",handles.br.attr("cy"));
                 // handles.tr.attr("cx",handles.br.attr("cx"));
@@ -1253,6 +1272,7 @@ var v4v = (function() {
                 
 
                 positionDelete();
+                positionInfo();
                 setDimensionAttributes(currentAngleData.c);
                 // handles.br.attr("cy",handles.bl.attr("cy"));
                 // handles.tl.attr("cx",handles.bl.attr("cx"));
@@ -1288,7 +1308,9 @@ var v4v = (function() {
 
                 // handles.br.attr("cy",handles.bl.attr("cy"));
                 // handles.tl.attr("cx",handles.bl.attr("cx"));
-                // positionDelete();
+                positionDelete();
+
+                positionInfo();
                 // _handler(_element,Number(handles.tl.attr("cx")),Number(handles.tl.attr("cy")),Number(handles.tr.attr("cx"))-Number(handles.tl.attr("cx")),Number(handles.br.attr("cy"))-Number(handles.tr.attr("cy")));
                 _handler(_element,Number(handles.tl.attr("cx")),Number(handles.tl.attr("cy")),getDistance(Number(handles.tr.attr("cx")),Number(handles.tr.attr("cy")),Number(handles.tl.attr("cx")),Number(handles.tl.attr("cy"))), getDistance(Number(handles.bl.attr("cx")),Number(handles.bl.attr("cy")),Number(handles.tl.attr("cx")),Number(handles.tl.attr("cy"))),shapeAngle);
                 
@@ -1301,13 +1323,27 @@ var v4v = (function() {
             function positionDelete(){
                 if(_enableDelete){
                     deleteButton.attr("x",Number(handles.tl.attr("cx"))+(Number(handles.tr.attr("cx")-handles.tl.attr("cx"))/2)-(deleteButton.getElement().getBoundingClientRect().width/2));
-                    deleteButton.attr("y",Number(handles.tl.attr("cy"))+(deleteButton.getElement().getBoundingClientRect().height/2));
+                    deleteButton.attr("y",Number(handles.tl.attr("cy"))+(Number(handles.tr.attr("cy")-handles.tl.attr("cy"))/2)-(deleteButton.getElement().getBoundingClientRect().height/2));
+                    //deleteButton.attr("y",Number(handles.tl.attr("cy"))+(deleteButton.getElement().getBoundingClientRect().height/2));
                     deletePoly.attr("d",_stage.getLineString(getDeletePoints()));
+                }
+            }
+
+            function positionInfo(){
+                if(_enableInfo){
+                    infoButton.attr("x",Number(handles.tr.attr("cx"))+(Number(handles.br.attr("cx")-handles.tr.attr("cx"))/2)-(infoButton.getElement().getBoundingClientRect().width/2));
+                    infoButton.attr("y",Number(handles.tr.attr("cy"))+(Number(handles.br.attr("cy")-handles.tr.attr("cy"))/2)-(infoButton.getElement().getBoundingClientRect().height/2));
+                    //deleteButton.attr("y",Number(handles.tl.attr("cy"))+(deleteButton.getElement().getBoundingClientRect().height/2));
+                    infoPoly.attr("d",_stage.getLineString(getInfoPoints()));
                 }
             }
 
             this.remove = function(){
                 removeResizor();
+            }
+
+            this.delete = function(){
+                deleteClicked();
             }
 
             function removeResizor(){
@@ -1320,6 +1356,10 @@ var v4v = (function() {
                     if(_enableDelete){
                         deleteButton.remove();
                         deletePoly.remove();
+                    }
+                    if(_enableInfo){
+                        infoButton.remove();
+                        infoPoly.remove();
                     }
                     handles = undefined;
                 }
@@ -1334,10 +1374,27 @@ var v4v = (function() {
                 {x:Number(deleteButton.attr("x")),y:Number(deleteButton.attr("y"))}];
             }
 
+            function getInfoPoints(){
+                return [
+                {x:Number(infoButton.attr("x")),y:Number(infoButton.attr("y"))-infoButton.getElement().getBoundingClientRect().height},
+                {x:Number(infoButton.attr("x"))+infoButton.getElement().getBoundingClientRect().width,y:Number(infoButton.attr("y"))-infoButton.getElement().getBoundingClientRect().height},
+                {x:Number(infoButton.attr("x"))+infoButton.getElement().getBoundingClientRect().width,y:Number(infoButton.attr("y"))},
+                {x:Number(infoButton.attr("x")),y:Number(infoButton.attr("y"))}];
+            }
+
             function deleteClicked(){
                 _element.parentNode.removeChild(_element);
                 removeResizor();
-                _deleteHandler();
+                if(_deleteHandler != undefined){
+                    _deleteHandler();
+                }
+                
+            }
+
+            function infoClicked(){
+                // _element.parentNode.removeChild(_element);
+                // removeResizor();
+                _infoHandler();
             }
             
         }
@@ -1437,6 +1494,14 @@ var v4v = (function() {
                 {x:Number(deleteButton.attr("x")),y:Number(deleteButton.attr("y"))}];
             }
 
+            function getInfoPoints(){
+                return [
+                {x:Number(infoButton.attr("x")),y:Number(infoButton.attr("y"))-infoButton.getElement().getBoundingClientRect().height},
+                {x:Number(infoButton.attr("x"))+infoButton.getElement().getBoundingClientRect().width,y:Number(infoButton.attr("y"))-infoButton.getElement().getBoundingClientRect().height},
+                {x:Number(infoButton.attr("x"))+infoButton.getElement().getBoundingClientRect().width,y:Number(infoButton.attr("y"))},
+                {x:Number(infoButton.attr("x")),y:Number(infoButton.attr("y"))}];
+            }
+
             function deleteClicked(){
                 _element.parentNode.removeChild(_element);
                 removeResizor();
@@ -1444,11 +1509,11 @@ var v4v = (function() {
             
         }
 
-        this.resizableStage = function(_stage,_addHandler,_selectHandler,_resizeHandler,_deleteHandler,_deselectHandler){
-            return new ResizeableStage(_stage,_addHandler,_selectHandler,_resizeHandler,_deleteHandler,_deselectHandler);
+        this.resizableStage = function(_stage,_addHandler,_selectHandler,_resizeHandler,_deleteHandler,_deselectHandler,_infoHandler){
+            return new ResizeableStage(_stage,_addHandler,_selectHandler,_resizeHandler,_deleteHandler,_deselectHandler,_infoHandler);
         }
 
-        function ResizeableStage(_stage,_addHandler,_selectHandler,_resizeHandler,_deleteHandler,_deselectHandler){
+        function ResizeableStage(_stage,_addHandler,_selectHandler,_resizeHandler,_deleteHandler,_deselectHandler,_infoHandler){
             var dims = {w:_stage.getElement().getBoundingClientRect().width,h:_stage.getElement().getBoundingClientRect().height};
             var svgID = Math.random().toString().split(".").join("")+Math.random().toString().split(".").join("")+Math.random().toString().split(".").join("");
             var bgBath = v4v.path(_stage,{fill:"transparent"},[{x:0,y:0,r:0},{x:1,y:0,r:0},{x:0,y:1,r:0}]);
@@ -1479,11 +1544,14 @@ var v4v = (function() {
                     c:_el.getAttribute("transform"),
                     width:Number(_el.getAttribute("width")),
                     height:Number(_el.getAttribute("height")),
-                    center:{x:_el.getBoundingClientRect().left+(_el.getBoundingClientRect().width/2)-_stage.getElement().getBoundingClientRect().left,y:_el.getBoundingClientRect().top+(_el.getBoundingClientRect().height/2)-_stage.getElement().getBoundingClientRect().top}
+                    center:{x:_el.getBoundingClientRect().left+(_el.getBoundingClientRect().width/2)-_stage.getElement().getBoundingClientRect().left,y:_el.getBoundingClientRect().top+(_el.getBoundingClientRect().height/2)-_stage.getElement().getBoundingClientRect().top},
+                    x:_el.getBoundingClientRect().left,
+                    y:_el.getBoundingClientRect().top,
                 };
                 
             }
-            function onResize(_element, x, y, width, height, rotation){
+            function onResize(_element, x, y, width, height, rotation,suspendHandler){
+                console.log(_element);
                 _element.parentNode.setAttribute("transform","translate(0,0)");
                 _element.parentNode.setAttribute("translatex","0");
                 _element.parentNode.setAttribute("translatey","0");
@@ -1493,9 +1561,13 @@ var v4v = (function() {
                 //_element.setAttribute("y",y);
                 _element.setAttribute("width",width);
                 _element.setAttribute("height",height);
-                if(_resizeHandler != undefined){
+                if(_resizeHandler != undefined && !suspendHandler){
                     _resizeHandler(currentMarker.getAttribute("markerid"),getDimensions(currentMarker));
                 }   
+            }
+
+            this.update = function(_element, x, y, width, height, rotation){
+                onResize(_element, x, y, width, height, rotation);
             }
             // document.getElementById("id_field_"+svgID).addEventListener("keyup",function(e){
             //     if(currentMarker != undefined){
@@ -1505,44 +1577,97 @@ var v4v = (function() {
             // });
             
 
-            this.add = function(_data){
-                addItem(_data);
+            this.add = function(_data,_elementID){
+                addItem(_data,_elementID);
             }
 
-            function addItem(_data){
-                var marker = v4v.rect(_stage, {x:0,y:0,width:100,height:100,fill:"rgba(236,183,0,.3)",stroke:"rgba(255,0,0,.6)",markerid:Math.random().toString().split(".").join("")});
-                //var marker = Rect(_stage, 0, 0, _width, 100, 100);
-                //marker.attr("fill","rgba(236,183,0,.3)");
-                //marker.attr("stroke","rgba(255,0,0,.6)");
-                //marker.attr("markerid",Math.random().toString().split(".").join(""));
-                //var markerShell = v4v.g(_stage,{id:"markershell_"+svgID,translatex:"0",translatey:"0"});
+            this.delete = function(){
+                resizor.delete();
+            }
+
+            this.applyControls = function(_elementID){
+                addControls(_elementID);
+            }
+
+            function addItem(_data,_elementID){
+                if(_elementID != undefined){
+                    if(_addHandler != undefined){
+                        var rectangles = _stage.getElement().getElementsByTagName("rect");
+                        var markerRect;
+                        for(var i = 0;i<rectangles.length;i++){
+                            if(rectangles[i].getAttribute("markerid") == _elementID){
+                                markerRect = rectangles[i];
+                            }
+                        }
+                        _addHandler(_elementID,getDimensions(markerRect));
+                    }
+
+                }
+                else{
+                    addControls();
+                    // var marker = v4v.rect(_stage, {x:0,y:0,width:100,height:100,fill:"rgba(236,183,0,.3)",stroke:"rgba(255,0,0,.6)",markerid:Math.random().toString().split(".").join("")});
+                    
+                    // var markerShell = v4v.g(_stage,{id:"markershell_"+svgID,translatex:"0",translatey:"0"});
+                    // markerShell.getElement().appendChild(marker.getElement());
+                    // markerShell.Drag(function(_obj,_el){
+                    //     if(_resizeHandler != undefined){
+                            
+                    //         _resizeHandler(_el.getElementsByTagName("rect")[0].getAttribute("markerid"),getDimensions(_el.getElementsByTagName("rect")[0]));
+                    //     }
+                    // });
+                    // onMarkerDown();
+                    // currentMarker = marker.getElement();
+                    // if(_addHandler != undefined){
+                    //     _addHandler(marker.attr("markerid"),getDimensions(marker.getElement()));
+                    // }
+                    // onMarkerSelected(currentMarker);
+                    // marker.getElement().addEventListener("click", function(e){
+
+                    //     currentMarker = e.currentTarget;
+                        
+                    //     onMarkerSelected(currentMarker);
+
+                    // });
+
+                    // marker.getElement().addEventListener("mousedown", onMarkerDown); 
+                }
+                
+
+                
+            }
+
+            function addControls(_elementID){
+                console.log(_elementID);
+                var _suspendEvents = _elementID != undefined;
+                var _markerID = _elementID == undefined ? Math.random().toString().split(".").join("") : _elementID;
+                var marker = v4v.rect(_stage, {x:0,y:0,width:100,height:100,fill:"rgba(236,183,0,.3)",stroke:"rgba(255,0,0,.6)",markerid:_markerID});
+                    
                 var markerShell = v4v.g(_stage,{id:"markershell_"+svgID,translatex:"0",translatey:"0"});
                 markerShell.getElement().appendChild(marker.getElement());
                 markerShell.Drag(function(_obj,_el){
                     if(_resizeHandler != undefined){
-                        //console.log(_el);
+                        
                         _resizeHandler(_el.getElementsByTagName("rect")[0].getAttribute("markerid"),getDimensions(_el.getElementsByTagName("rect")[0]));
                     }
                 });
-                onMarkerDown();
-                currentMarker = marker.getElement();
-                if(_addHandler != undefined){
-                    _addHandler(marker.attr("markerid"),getDimensions(marker.getElement()));
+                if(!_suspendEvents){
+                    onMarkerDown();
+                    currentMarker = marker.getElement();
+                    if(_addHandler != undefined){
+                        _addHandler(marker.attr("markerid"),getDimensions(marker.getElement()));
+                    }
+                    onMarkerSelected(currentMarker);
                 }
-                onMarkerSelected(currentMarker);
+                
                 marker.getElement().addEventListener("click", function(e){
 
-                    //resizor = v4v.resizor(_stage, e.currentTarget,onResize,{x:_stage.getElement().getBoundingClientRect().left,y:_stage.getElement().getBoundingClientRect().top},true);
                     currentMarker = e.currentTarget;
                     
-                    //document.getElementById("id_field_"+svgID).value = currentMarker.getAttribute("markerid");
                     onMarkerSelected(currentMarker);
 
                 });
 
-                marker.getElement().addEventListener("mousedown", onMarkerDown);
-
-                
+                marker.getElement().addEventListener("mousedown", onMarkerDown); 
             }
 
             function onMarkerSelected(cm){
@@ -1552,7 +1677,8 @@ var v4v = (function() {
                 //console.log(markerShellOffset);
                 var resizorOffset = {x:_stage.getElement().getBoundingClientRect().left,y:_stage.getElement().getBoundingClientRect().top};
                 var deleteMethod = _deleteHandler!=undefined  ? function(){ _deleteHandler(currentMarker.getAttribute("markerid")); } : _deleteHandler;
-                resizor = new ResizorWithRotation(_stage, cm ,onResize,resizorOffset,deleteMethod);
+                var infoMethod = _infoHandler!=undefined  ? function(){ _infoHandler(currentMarker.getAttribute("markerid")); } : _infoHandler;
+                resizor = new ResizorWithRotation(_stage, cm ,onResize,resizorOffset,deleteMethod,infoMethod);
                 //currentMarker = e.currentTarget;
                 //document.getElementById("id_field_"+svgID).value = cm.getAttribute("markerid");
                 if(_selectHandler != undefined){
@@ -3717,6 +3843,8 @@ var v4v = (function() {
 
             function absolve(){
                 var rec = pathReconstruction();
+                //console.log("REC");
+                //console.log(rec);
                 //var recString = "";
                 var lastPosition = {x:0,y:0};
                 for(var i = 0;i<rec.length;i++){
@@ -3780,6 +3908,10 @@ var v4v = (function() {
                                 commandList[i] = "L";
                                 break;
                             }
+                            case "a":
+                            case "A":{
+                                break;
+                            }
 
                         }
                         if(rec[i][j].x.toString() != "NaN" && rec[i][j].y.toString() != "NaN"){
@@ -3839,6 +3971,8 @@ var v4v = (function() {
             function primeList(){
                 var list = [];
                 var ablolvedPath = absolve();
+                
+
                 for(var i = 0;i<ablolvedPath.length;i++){
                     var subList = [];
                     
@@ -3855,6 +3989,55 @@ var v4v = (function() {
                             subObj.x = "NaN";
                             subObj.y = "NaN";
                         }
+                        subList.push(subObj);
+                        
+                        
+                    }
+                    list.push(subList);
+                    
+
+                }
+                return list;
+            }
+
+            this.primedRawList = function(){
+                return primeRawList();
+            }
+
+            function primeRawList(){
+                var list = [];
+                var ablolvedPath = absolve();
+                //console.log("ABS");
+                //console.log(ablolvedPath);
+                for(var i = 0;i<ablolvedPath.length;i++){
+                    var subList = [];
+                    
+                    for(var j = 0;j<ablolvedPath[i].length;j++){
+                        var subObj = {};
+                        if(j==0){
+                            
+                            subObj.command = ablolvedPath[i][j].command.toUpperCase();
+                        }
+                        if(ablolvedPath[i][0].command.toLowerCase() != "v" && ablolvedPath[i][0].command.toLowerCase()!="z"){
+                            subObj.x = ablolvedPath[i][j]._x;
+                        }
+                        if(ablolvedPath[i][0].command.toLowerCase() != "h" && ablolvedPath[i][0].command.toLowerCase()!="z"){
+                            subObj.y = ablolvedPath[i][j]._y;
+                        }
+
+                        if(ablolvedPath[i][0].command.toLowerCase() == "a"){
+                            subObj.rx = ablolvedPath[i][j].rx;
+                            subObj.ry = ablolvedPath[i][j].ry;
+                            subObj.sweep = ablolvedPath[i][j].sweep;
+                            subObj.arc = ablolvedPath[i][j].arc;
+                            subObj.angle = ablolvedPath[i][j].angle;
+                        }                        
+                        //subObj.y = ablolvedPath[i][j]._y;
+                        
+                        // if(ablolvedPath[i][0].command.toLowerCase()=="z"){
+                        //     subObj.x = "NaN";
+                        //     subObj.y = "NaN";
+                        // }
                         subList.push(subObj);
                         
                         

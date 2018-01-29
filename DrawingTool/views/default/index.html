@@ -1,27 +1,525 @@
 {{extend 'layout.html'}}
 
-<div style="position: absolute; left: 0;top: 0;bottom: 0;right: 0" id="drawingContainer" v-on:mousemove="onMouseMove" v-on:mouseup="onMouseUp">
-  <svg style="width:100%; height:100%;">
-    <rect v-if="currentMode != 'draw'" x="0" y="0" width="20000" height="20000" v-on:mousedown="onStagePressed" fill="transparent"></rect>
-    <path v-for="s in shapes" v-bind:d="serializePoints(s)" stroke="#000000" fill="#dddddd"></path>
-    <path v-if="points.length>0" v-bind:d="serializePoints(points)" stroke="#999999" fill="transparent"></path>
-    <rect v-if="currentMode == 'draw'" x="0" y="0" width="20000" height="20000" v-on:mousedown="onStagePressed" fill="transparent"></rect>
+<style>
+  #drawingContainer{
+    position: absolute; 
+    left: 0;
+    top: 0;
+    bottom: 0;
+    right: 0;
+  }
+
+  rect.board-background{
+    fill: transparent;
+  }
+
+  
+
+  svg.drawing-board{
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 200px;
+    width: 100%;
+    height: 100%;
+    z-index: 100;
+  }
+  div.right-menu{
+    position: relative;
+    z-index: 200;
+  }
+  .flex-grid-border{
+      fill:rgba(202,190,168,.3);
+      stroke: #000000;
+      stroke-width:1;
+  }
+  .flex-grid-border:hover{
+    fill:rgba(202,190,168,.5);
+  }
+
+
+  ul.mode-menu{
+    display: block;
+    margin:0;
+    padding: 0;
+    height: 20px;
+    width: 150px;
+    margin:10px auto;
+    /*
+    position: absolute;
+    */
+  }
+  ul.mode-menu > li{
+    display: block;
+    float: left;
+    width:33%;
+    height: 100%;
+    text-align: center;
+    box-shadow: 0 0 1px rgba(0,0,0,.2) inset;
+    background-color: rgba(255,255,255,.5);
+
+  }
+  ul.mode-menu > li label{
+    opacity: .5;
+  }
+  ul.mode-menu > li input{
+    display: none;
+  }
+  ul.mode-menu > li input:checked + label{
+    opacity: 1;
+  }
+  ul.mode-menu > li:first-child{
+    border-radius: 50px 0 0 50px;
+
+  }
+
+  ul.mode-menu > li:last-child{
+    border-radius: 0 50px 50px 0;
+
+
+  }
+
+  div.right-menu{
+    width:200px;
+    top: 0;
+    bottom: 0;
+    background-color: transparent;
+    position: absolute;
+    right: 0;
+    text-align: center;
+  }
+
+  svg#directiveMenu{
+
+    background-color: transparent; 
+    width: 200px;
+    height: 160px;
+
+    /*
+    position: absolute; 
+    right: 0;
+    */
+  }
+
+  svg#directiveMenu path.flex-grid-icon{
+    fill:rgba(202,190,168,.4);
+  }
+
+  svg.drawing-M path.flex-grid-icon.directive-M,
+  svg.drawing-L path.flex-grid-icon.directive-L,
+  svg.drawing-H path.flex-grid-icon.directive-H,
+  svg.drawing-V path.flex-grid-icon.directive-V,
+  svg.drawing-T path.flex-grid-icon.directive-T,
+  svg.drawing-C path.flex-grid-icon.directive-C,
+  svg.drawing-S path.flex-grid-icon.directive-S,
+  svg.drawing-Q path.flex-grid-icon.directive-Q,
+  svg.drawing-A path.flex-grid-icon.directive-A,
+  svg.drawing-Z path.flex-grid-icon.directive-Z{
+    fill:rgba(202,190,168,1) !important;
+  }
+
+  ul.shape-list,
+  ul.directive-list,
+  ul.property-list{
+    margin: 0;
+    padding:0;
+    text-align: left;
+    width:100%;
+  }
+  
+  ul.directive-list{
+    padding: 10px;
+  }
+
+  ul.directive-list > li{
+    /*border-top:solid 1px rgba(255,255,255,.3);*/
+  }
+  ul.directive-list li{
+    display: block;
+  }
+
+  ul.directive-list li ul.property-list{
+
+  }
+
+  ul.directive-list li ul.property-list li:first-child{
+    margin-bottom: -5px;
+    margin-top: 10px;
+    color: rgba(255,255,255,.4);
+    font-size: 12px;
+    padding-left: 2px;
+    background-color: rgba(255,255,255,.2);
+    border-top: 1px solid rgba(255,255,255,.1);
+  }
+
+  ul.directive-list > li > input{
+    display: none;
+  }
+
+  ul.directive-list > li > label{
+    width: 100%;
+    /* text-align: right; */
+    margin-top: -22px;
+    display: block;
+    background-color: rgba(202,190,168,.8);
+    margin-left: -10px;
+    margin-right: -12px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    padding-left: 10px;
+    box-shadow: 20px 0 0 rgba(202,190,168,.8);
+
+  }
+  ul.directive-list > li > input + label + div{
+    display: none;
+  }
+  ul.directive-list > li > input:checked + label + div{
+    display: block;
+    padding-bottom:10px;
+  }
+
+  ul.directive-list > li > input:checked + label > span.closed{
+    display: none;
+  }
+  ul.directive-list > li > input + label > span.opened{
+    display: none;
+  }
+  ul.directive-list > li > input:checked + label > span.opened{
+    display: block;
+  }
+  ul.directive-list > li > input + label > span.closed{
+    display: block;
+  }
+
+  ul.directive-list > li > span{
+    font-size:10px;
+    font-weight: bold;
+    padding-left: 20px;
+    color:#000000;
+  }
+
+  ul.directive-list > li > label > span{
+    
+    color:#000000;
+  }
+
+  
+
+  ul.property-list > li > div{
+      box-shadow: 0px 2px 1px rgba(0,0,0,.2) inset; inset;
+      /* border-radius: 0 0 14px 14px; */
+      padding: 5px;
+      background-color: rgba(255,255,255,.4);
+  }
+  ul.property-list > li > div > input[type='number']{
+    background-color: transparent;
+    border: none;
+    color: rgba(202,190,168,1);
+    padding-left: 5px;
+  }
+  ul.property-list > li > label{
+    /*border-radius: 8px 8px 0 0;*/
+    color:rgba(255,255,255,.4);
+    /*background-color: #222222;*/
+    padding: 2px 5px;
+    width: 180px;
+    margin: 8px 0px 0px 0px;
+  }
+  div.radius-control,
+  div.bool-control{
+    
+    height: 32px;
+    
+  }
+
+  div.bool-control > input{
+    width: 180px;
+    /* float: right; */
+    height: 31px;
+    border: none;
+    /* padding-left: 10px; */
+    background-color: transparent;
+    border-radius: 0 20px 20px 0;
+    margin-left: -30px;
+    position: absolute;
+    margin-top: -4px;
+    opacity: 0;
+
+  }
+
+  div.radius-control > input{
+    /*width: 50px;*/
+    /*float: right;*/
+    height: 20px;
+    border: none;
+    
+    background-color: transparent;
+    /*border-radius: 0 20px 20px 0;*/
+    /*margin-left: 10px;*/
+
+  }
+  div.radius-control > svg,
+  div.bool-control > svg{
+    border-radius: 20px;
+    background-color: rgba(0,0,0,.1);
+    margin-right: -10px;
+    box-shadow: 0 0px 1px rgba(255,255,255,0.5) inset;
+  }
+
+ 
+
+  div.angle-control circle.center-circle{
+    fill:#000000;
+    stroke:rgba(255,255,255,0.3);
+  }
+
+  div.angle-control{
+    padding-left: 30px !important;
+    position: relative;
+  }
+
+  div.angle-control > svg{
+    border-radius: 64px;
+    background-color: rgba(0,0,0,.1);
+    box-shadow: 0 0px 1px rgba(255,255,255,0.5) inset;
+  }
+  div.angle-control > input{
+    position: absolute;
+    left: 62px;
+    top: 54px;
+    width: 55px;
+    height: 20px;
+    border-radius: 20px;
+    border: none;
+    padding: 5px;
+    background-color: rgba(255,255,255,.5) !important;
+  }
+
+  div.menu-bg-div{
+    z-index: 150;
+    position: fixed;
+    width: 200px;
+    height: 100%;
+    top:0;
+    
+    right: 0;
+    background-color: #000000;
+  }
+
+  .radius-control circle,
+  .bool-control circle,
+  div.angle-control circle{
+    fill: rgba(202,190,168,1);
+  }
+
+  .bool-control.on-mode > svg{
+    background-color: rgba(51,153,51,.6);
+  }
+
+  div.bool-control > span{
+    float: right;
+    margin-top: 2px;
+    color: rgba(202,190,168,1);
+  }
+
+  circle.arc-halo{
+    fill:rgba(0,0,0,.2);
+    stroke:#0000ff;
+    stroke-width:1;
+    opacity: .5;
+  }
+  line.radius-line{
+    stroke-width:1;
+    stroke: #0000ff;
+    opacity: .5;
+  }
+  circle.inline-slider-handle{
+    fill:#999999;
+    stroke:#0000ff;
+    stroke-width:1;
+  }
+  path.angle-path{
+    stroke-width:1;
+    stroke: #0000ff;
+    fill:#999999;
+    opacity: .2;
+  }
+
+  circle.arch-bool-circle{
+    fill:#ffffff;
+    stroke: transparent;
+  }
+
+  rect.arch-bool-rect{
+    fill:#ffffff;
+    stroke: transparent;
+  }
+
+  circle.joint-circle{
+    fill:#999999;
+    stroke:#0000ff;
+    stroke-width:1;
+
+  }
+
+  circle.virtual-circle{
+    fill:#333333;
+    stroke:#0000ff;
+    stroke-width:1;
+
+  }
+
+  line.anchor-line{
+    stroke:#0000ff;
+    stroke-width:1;
+  }
+
+  path.guide-path{
+    fill:transparent;
+    stroke:#0000ff;
+    stroke-width:1;
+
+  }
+  circle.toggle-border{
+    fill: transparent;
+    stroke: #0000ff;
+  }
+  rect.toggle-border{
+    fill: transparent;
+    stroke: #0000ff;
+  }
+  circle.sweep-toggle{
+    fill:#c9c9c9;
+    stroke:transparent;
+  }
+  circle.sweep-toggle.toggle-on{
+    fill:#0000ff;
+  }
+  circle.arc-toggle{
+    fill:#c9c9c9;
+    stroke:transparent;
+  }
+  circle.arc-toggle.toggle-on{
+    fill:#0000ff;
+  }
+  circle.inline-rotation-handle{
+    fill:#999999;
+    stroke: #0000ff;
+  }
+
+</style>
+<div class="menu-bg-div"></div>
+<div id="drawingContainer" v-on:mousemove="onMouseMove" v-on:mouseup="onMouseUp">
+  <div class="right-menu">
+    <ul class="mode-menu">
+      <li v-for="m in modes" v-bind:id="'application_mode_'+m" v-bind:class="'mode-button '+m"><input v-bind:id="m" type="radio" v-bind:value="m" v-model="currentMode" /><label v-bind:for="m">{%m%}</label></li>
+    </ul>
+    <svg id="directiveMenu" v-bind:class="'drawing-'+currentDrawCommand">
+      <path style="display: none;" v-for="(d,v,i) in drawCommandPaths" v-bind:d="d" v-bind:class="'directive-'+v"></path>
+    </svg>
+    <ul class="directive-list">
+      <li v-for="(p,i) in points">
+        <span>{%serializePoints([p],true)%}</span>
+        <input type="checkbox" v-bind:id="'point_'+i.toString()"/><label v-bind:for="'point_'+i.toString()"><span class="glyphicon glyphicon-chevron-up opened"></span><span class="glyphicon glyphicon-chevron-down closed"></span></label>
+        <div>
+
+          <ul class="property-list" v-for="(x,m) in p">
+            <li>{%m==p.length-1 ? 'Joint' : 'Anchor'%}</li>
+            <li v-for="(v,y,j) in x" v-if="y!='command'">
+              <label>{%labelMatrix[y]%}</label>
+              <div class="radius-control" v-if="y=='rx'">
+                <!-- <svg v-bind:id="'rxControl_'+i.toString()+'_'+j.toString()" v-bind:style="'width:'+controlDimensions.width+'px; height:'+(controlDimensions.sideRadiusHandle*2).toString()+'px;'">
+                  <circle v-bind:r="controlDimensions.sideRadiusHandle" v-bind:cx="Number(points[i][m][y])+controlDimensions.sideRadiusHandle" v-bind:cy="controlDimensions.sideRadiusHandle" v-on:mousedown="onRXPressed(i,'rxControl_'+i.toString()+'_'+j.toString())"></circle>
+                </svg> -->
+                <input class="radius-field" v-bind:id="'input_field_'+i.toString()+'_'+m.toString()+'_'+y.toString()" v-bind:value="v" type="number" v-model="points[i][m][y]" v-on:keydown="onEnterTextValue" v-on:keyup="onEnterTextValue" />
+              </div>
+              <div class="radius-control" v-else-if="y=='ry'">
+                <!-- <svg v-bind:id="'ryControl_'+i.toString()+'_'+j.toString()" v-bind:style="'width:'+controlDimensions.width+'px; height:'+(controlDimensions.sideRadiusHandle*2).toString()+'px;'">
+                  <circle v-bind:r="controlDimensions.sideRadiusHandle" v-bind:cx="Number(points[i][m][y])+controlDimensions.sideRadiusHandle" v-bind:cy="controlDimensions.sideRadiusHandle" v-on:mousedown="onRYPressed(i,'ryControl_'+i.toString()+'_'+j.toString())"></circle>
+                </svg> -->
+                <input class="radius-field" v-bind:id="'input_field_'+i.toString()+'_'+m.toString()+'_'+y.toString()" v-bind:value="v" type="number" v-model="points[i][m][y]" v-on:keydown="onEnterTextValue" v-on:keyup="onEnterTextValue" />
+              </div>
+              <div class="angle-control" v-else-if="y=='angle'">
+                <svg v-bind:id="'angleControl_'+i.toString()+'_'+j.toString()" v-bind:style="'width:'+controlDimensions.width+'px; height:'+controlDimensions.height+'px;'">
+                  <circle class="center-circle" v-bind:r="(controlDimensions.width/2)-(controlDimensions.sideRotationHandle*1.5)" v-bind:cx="controlDimensions.width/2" v-bind:cy="controlDimensions.width/2"></circle>
+                  <circle v-bind:r="controlDimensions.sideRotationHandle" v-bind:cx="getRotationPosition(i,true,true)" v-bind:cy="getRotationPosition(i,false,true)" v-on:mousedown="onRotationPressed(i,'angleControl_'+i.toString()+'_'+j.toString())"></circle>
+                </svg>
+                <input class="angle-field" v-bind:id="'input_field_'+i.toString()+'_'+m.toString()+'_'+y.toString()" v-bind:value="v" type="number" v-model="points[i][m][y]" v-on:keydown="onEnterTextValue" v-on:keyup="onEnterTextValue" />
+              </div>
+              <div v-bind:class="v==1 ? 'bool-control on-mode' : 'bool-control'" v-else-if="y=='arc'">
+                <svg v-bind:id="'ryControl_'+i.toString()+'_'+j.toString()" v-bind:style="'width:'+(controlDimensions.sideRadiusHandle*3.5)+'px; height:'+(controlDimensions.sideRadiusHandle*2).toString()+'px;'">
+                  <circle v-bind:r="controlDimensions.sideRadiusHandle" v-bind:cy="controlDimensions.sideRadiusHandle" v-bind:cx="v==1 ? controlDimensions.sideRadiusHandle*2.5 : controlDimensions.sideRadiusHandle"></circle>
+                </svg>
+                <span>{% v==1 ? 'ON' : 'OFF' %}</span>
+                <input v-bind:id="'input_field_'+i.toString()+'_'+m.toString()+'_'+y.toString()" v-bind:checked='v==1' type="checkbox" v-bind:point-index="i" v-bind:sub-index="m" v-bind:attribute-name="y" v-on:change="onCheckArchClicked" />
+              </div>
+              <div v-bind:class="v==1 ? 'bool-control on-mode' : 'bool-control'" v-else-if="y=='sweep'">
+                <svg v-bind:id="'ryControl_'+i.toString()+'_'+j.toString()" v-bind:style="'width:'+(controlDimensions.sideRadiusHandle*3.5)+'px; height:'+(controlDimensions.sideRadiusHandle*2).toString()+'px;'">
+                  <circle v-bind:r="controlDimensions.sideRadiusHandle" v-bind:cy="controlDimensions.sideRadiusHandle" v-bind:cx="v==1 ? controlDimensions.sideRadiusHandle*2.5 : controlDimensions.sideRadiusHandle"></circle>
+                </svg>
+                <span>{% v==1 ? 'ON' : 'OFF' %}</span>
+                <input v-bind:id="'input_field_'+i.toString()+'_'+m.toString()+'_'+y.toString()" v-bind:checked='v==1' type="checkbox" v-bind:point-index="i" v-bind:sub-index="m" v-bind:attribute-name="y" v-on:change="onCheckArchClicked" />
+              </div>
+              <div v-else>
+                <input v-bind:id="'input_field_'+i.toString()+'_'+m.toString()+'_'+y.toString()" v-bind:value="v" type="number" v-model="points[i][m][y]" v-on:keydown="onEnterTextValue" v-on:keyup="onEnterTextValue" />
+              </div>
+            </li>
+          </ul>
+        </div>
+      </li>
+    </ul>
+  </div>
+  
+  <svg class="drawing-board">
+    <rect class="board-background" v-if="currentMode != 'draw'" x="0" y="0" width="20000" height="20000" v-on:mousedown="onStagePressed"></rect>
+    <path v-for="(s,i) in shapes" v-bind:d="serializePoints(s.points)" v-bind:stroke="s.stroke" v-bind:fill="s.fill" v-bind:stroke-width="s.strokeWidth" v-bind:shape-index="i" v-on:mousedown="shapeSelected"></path>
+    <path class="guide-path" v-if="points.length>0" v-bind:d="serializePoints(points)" v-bind:shape-index="selectedShape" v-on:mousedown="shapeSelected"></path>
+    <rect class="board-background" v-if="currentMode == 'draw'" x="0" y="0" width="20000" height="20000" v-on:mousedown="onStagePressed"></rect>
 
     <g>
       <g v-for="(p,i) in points">
         <g v-for="(v,j) in p">
-          <line v-if="j==1 && p.length==3" v-bind:x1="v.x != undefined ? v.x : getLastX(i)" v-bind:y1="v.y != undefined ? v.y : getLastY(i)" v-bind:x2="p[p.length-1].x" v-bind:y2="p[p.length-1].y" stroke="#cccccc" stroke-width="1"></line>
-          <line v-if="j==0 && p.length==3" v-bind:x1="v.x != undefined ? v.x : getLastX(i)" v-bind:y1="v.y != undefined ? v.y : getLastY(i)" v-bind:x2="points[i-1][points[i-1].length-1].x" v-bind:y2="points[i-1][points[i-1].length-1].y" stroke="#cccccc" stroke-width="1"></line>
-          <line v-if="j==0 && p.length==2" v-bind:x1="v.x != undefined ? v.x : getLastX(i)" v-bind:y1="v.y != undefined ? v.y : getLastY(i)" v-bind:x2="p[p.length-1].x" v-bind:y2="p[p.length-1].y" stroke="#cccccc" stroke-width="1"></line>
+          <line class="anchor-line" v-if="j==1 && p.length==3" v-bind:x1="v.x != undefined ? v.x : getLastX(i)" v-bind:y1="v.y != undefined ? v.y : getLastY(i)" v-bind:x2="p[p.length-1].x" v-bind:y2="p[p.length-1].y"></line>
+          <line class="anchor-line" v-if="j==0 && p.length==3" v-bind:x1="v.x != undefined ? v.x : getLastX(i)" v-bind:y1="v.y != undefined ? v.y : getLastY(i)" v-bind:x2="points[i-1][points[i-1].length-1].x" v-bind:y2="points[i-1][points[i-1].length-1].y"></line>
+          <line class="anchor-line" v-if="j==0 && p.length==2" v-bind:x1="v.x != undefined ? v.x : getLastX(i)" v-bind:y1="v.y != undefined ? v.y : getLastY(i)" v-bind:x2="p[p.length-1].x" v-bind:y2="p[p.length-1].y"></line>
+          <g v-if="p[0].command == 'A'">
+            <circle class="arc-halo" v-bind:cx="getHalfPoint(p,points,i).x" v-bind:cy="getHalfPoint(p,points,i).y" r="40"></circle>
+            <path class="angle-path" v-bind:d="'M '+getHalfPoint(p,points,i).x+' '+getHalfPoint(p,points,i).y+' L '+getRotationPosition(i,true,false,6)+' '+getRotationPosition(i,false,false,6)+' L '+getRotationPosition(i,true,false,-6)+' '+getRotationPosition(i,false,false,-6)+' Z'"></path>
+            <line class="radius-line" v-bind:x1="getHalfPoint(p,points,i).x+controlDimensions.ry.x" v-bind:y1="getHalfPoint(p,points,i).y-(controlDimensions.ry.y+(p[0].ry*(controlDimensions.rx.length/(controlDimensions.width-(controlDimensions.sideRadiusHandle*2)))))" v-bind:x2="getHalfPoint(p,points,i).x+controlDimensions.ry.x" v-bind:y2="getHalfPoint(p,points,i).y+controlDimensions.ry.y+controlDimensions.ry.length"></line>
+            <line class="radius-line" v-bind:x1="getHalfPoint(p,points,i).x+controlDimensions.rx.x" v-bind:y1="getHalfPoint(p,points,i).y+controlDimensions.rx.y" v-bind:x2="getHalfPoint(p,points,i).x+controlDimensions.rx.x+(p[0].rx*(controlDimensions.rx.length/(controlDimensions.width-(controlDimensions.sideRadiusHandle*2))))" v-bind:y2="getHalfPoint(p,points,i).y+controlDimensions.rx.y"></line>
+
+            <line class="radius-line base-line" v-bind:x1="getHalfPoint(p,points,i).x+controlDimensions.rx.x" v-bind:x2="getHalfPoint(p,points,i).x+controlDimensions.rx.x" v-bind:y1="getHalfPoint(p,points,i).y+controlDimensions.rx.y-controlDimensions.rx.baseWidth" v-bind:y2="getHalfPoint(p,points,i).y+controlDimensions.rx.y+controlDimensions.rx.baseWidth"></line>
+
+            <line class="radius-line base-line" v-bind:y1="getHalfPoint(p,points,i).y+controlDimensions.ry.y+controlDimensions.ry.length" v-bind:y2="getHalfPoint(p,points,i).y+controlDimensions.ry.y+controlDimensions.ry.length" v-bind:x1="getHalfPoint(p,points,i).x+controlDimensions.ry.x-controlDimensions.ry.baseWidth" v-bind:x2="getHalfPoint(p,points,i).x+controlDimensions.ry.x+controlDimensions.ry.baseWidth"></line>
+            
+            <rect class="arch-bool-rect" v-bind:x="getHalfPoint(p,points,i).x+12" v-bind:y="getHalfPoint(p,points,i).y-12" width="18" height="10" rx="5" ry="5" v-on:click="sweepToggle(i)"></rect>
+            <rect class="arch-bool-rect" v-bind:x="getHalfPoint(p,points,i).x+12" v-bind:y="getHalfPoint(p,points,i).y+2" width="18" height="10" rx="5" ry="5" v-on:click="arcToggle(i)"></rect>
+        </g>
+          </g>
         </g>
       </g>
     </g>
 
     <g>
       <g v-for="(p,i) in points">
-        <circle v-for="(v,j) in p" v-if="p[0].command != 'Z'" v-bind:r="j==p.length-1 ? 8 : 4" v-bind:command="p[0].command" v-bind:cx="v.x != undefined ? v.x : getLastX(i)" v-bind:cy="v.y != undefined ? v.y : getLastY(i)" v-bind:point-index="i" v-bind:sub-index="j" v-on:mousedown="onPointPress"></circle>
-        <circle v-if="i==0 && reserveAnchor != undefined" r="4" command="reserveAnchor" v-bind:cx="reserveAnchor.x" v-bind:cy="reserveAnchor.y" point-index="-1" v-bind:sub-index="-1" v-on:mousedown="onPointPress"></circle>
-        <circle v-if="i==0 && startingAnchor != undefined" r="4" command="startingAnchor" v-bind:cx="startingAnchor.x" v-bind:cy="startingAnchor.y" point-index="-2" v-bind:sub-index="-1" v-on:mousedown="onPointPress"></circle>
+        <circle class="joint-circle" v-for="(v,j) in p" v-if="p[0].command != 'Z'" v-bind:r="j==p.length-1 ? 8 : 4" v-bind:command="p[0].command" v-bind:cx="v.x != undefined ? v.x : getLastX(i)" v-bind:cy="v.y != undefined ? v.y : getLastY(i)" v-bind:point-index="i" v-bind:sub-index="j" v-on:mousedown="onPointPress"></circle>
+        <circle class="virtual-circle" v-if="i==0 && reserveAnchor != undefined" r="4" command="reserveAnchor" v-bind:cx="reserveAnchor.x" v-bind:cy="reserveAnchor.y" point-index="-1" v-bind:sub-index="-1" v-on:mousedown="onPointPress"></circle>
+        <circle class="virtual-circle" v-if="i==0 && startingAnchor != undefined" r="4" command="startingAnchor" v-bind:cx="startingAnchor.x" v-bind:cy="startingAnchor.y" point-index="-2" v-bind:sub-index="-1" v-on:mousedown="onPointPress"></circle>
+        <g v-if="p[0].command == 'A'">
+          <circle class="inline-slider-handle" v-bind:cx="getHalfPoint(p,points,i).x+controlDimensions.rx.x+(p[0].rx*(controlDimensions.rx.length/(controlDimensions.width-(controlDimensions.sideRadiusHandle*2))))" v-bind:cy="getHalfPoint(p,points,i).y+controlDimensions.rx.y" r="4" fill="#000000" v-on:mousedown="onRXPressed(i)"></circle>
+          <circle class="inline-slider-handle" v-bind:cx="getHalfPoint(p,points,i).x+controlDimensions.ry.x" v-bind:cy="getHalfPoint(p,points,i).y-(controlDimensions.ry.y+(p[0].ry*(controlDimensions.rx.length/(controlDimensions.width-(controlDimensions.sideRadiusHandle*2)))))" r="4" fill="#000000" v-on:mousedown="onRYPressed(i)"></circle>
+          
+          <circle class="inline-rotation-handle" v-bind:cx="getRotationPosition(i,true)" v-bind:cy="getRotationPosition(i)" r="4" v-on:mousedown="onRotationPressed(i)"></circle>
+
+          <circle v-bind:class="p[0].arc == 1 ? 'arc-toggle toggle-on' : 'arc-toggle'" v-bind:cx="p[0].arc == 1 ? getHalfPoint(p,points,i).x+12+5+8 : getHalfPoint(p,points,i).x+12+5" v-bind:cy="getHalfPoint(p,points,i).y-12+5" r="3"></circle>
+          <rect class="toggle-border" v-bind:x="getHalfPoint(p,points,i).x+12" v-bind:y="getHalfPoint(p,points,i).y-12" width="18" height="10" rx="5" ry="5" v-on:click="arcToggle(i)"></rect>
+          
+
+          <circle v-bind:class="p[0].sweep == 1 ? 'sweep-toggle toggle-on' : 'sweep-toggle'" v-bind:cx="p[0].sweep == 1 ? getHalfPoint(p,points,i).x+12+5+8 : getHalfPoint(p,points,i).x+12+5" v-bind:cy="getHalfPoint(p,points,i).y+2+5" r="3"></circle>
+          <rect class="toggle-border" v-bind:x="getHalfPoint(p,points,i).x+12" v-bind:y="getHalfPoint(p,points,i).y+2" width="18" height="10" rx="5" ry="5" v-on:click="sweepToggle(i)"></rect>
+
+        </g>
       </g>
     </g>
   </svg>
@@ -34,20 +532,54 @@
       el:"#drawingContainer",
       data:{
         modes:{DRAW:"draw",EDIT:"edit",MOVE:"move"},
+        labelMatrix:{x:"X Position",y:"Y Position",rx:"Horizontal Radius",ry:"Vertical Radius",arc:"Large Arc Flag",sweep:"Sweep Flag",angle:"Rotation"},
+        rxArchDrag:-1,
+        ryArchDrag:-1,
+        rotationArchDrag:-1,
         items:["apples","Cheese","Farts"],
         points:[],
         selectedPoint:-3,
         selectedSubPoint:-1,
         currentMode:"draw",
         drawCommands:{M:"M",L:"L",C:"C",S:"S",T:"T",Q:"Q",V:"V",H:"H",A:"A",Z:"Z"},
+        drawCommandPaths:{
+          L:"M 28.923 8.518 h 11.628 v 42.624 h 16.015 v 11.711 H 28.923 V 8.518 Z",
+          H:"M 19.736 8.518 h 11.711 v 20.939 h 19.242 V 8.518 h 11.711 v 54.335 H 50.689 V 41.251 H 31.447 v 21.602 H 19.736 V 8.518 Z",
+          V:"M 15.391 8.518 h 11.854 l 13.741 36.127 L 54.751 8.518 h 11.871 L 46.05 62.853 H 35.881 L 15.391 8.518 Z",
+          T:"M 22.736 8.518 h 36.541 v 11.545 H 46.821 v 42.79 H 35.11 v -42.79 H 22.736 V 8.518 Z",
+          C:"M 62.649 11.415 v 13.242 c -5.876 -3.531 -11.022 -5.297 -15.436 -5.297 c -4.415 0 -7.945 1.518 -10.594 4.552 c -2.648 3.035 -3.973 7.117 -3.973 12.249 c 0 4.855 1.393 8.738 4.18 11.648 c 2.786 2.911 6.51 4.366 11.173 4.366 c 4.083 0 8.966 -1.641 14.649 -4.925 v 13.16 c -6.373 2.124 -11.684 3.187 -15.932 3.187 c -7.311 0 -13.519 -2.684 -18.622 -8.049 c -5.104 -5.366 -7.656 -11.911 -7.656 -19.636 c 0 -7.863 2.6 -14.519 7.801 -19.967 c 5.2 -5.448 11.525 -8.173 18.974 -8.173 C 52.014 7.773 57.159 8.987 62.649 11.415 Z",
+          S:"M 57.083 13.442 L 49.8 21.429 c -3.834 -2.262 -6.594 -3.393 -8.276 -3.393 c -1.297 0 -2.414 0.49 -3.352 1.469 c -0.938 0.979 -1.407 2.144 -1.407 3.495 c 0 2.676 2.427 4.993 7.283 6.952 c 3.559 1.519 6.249 2.892 8.069 4.119 c 1.821 1.228 3.345 2.932 4.573 5.11 c 1.228 2.18 1.842 4.539 1.842 7.076 c 0 4.663 -1.883 8.719 -5.649 12.167 c -3.766 3.448 -8.214 5.173 -13.346 5.173 c -5.628 0 -11.187 -2.648 -16.677 -7.945 l 7.697 -8.98 c 3.448 3.559 6.676 5.339 9.683 5.339 c 1.407 0 2.758 -0.626 4.056 -1.878 c 1.296 -1.252 1.945 -2.566 1.945 -3.942 c 0 -2.834 -2.994 -5.333 -8.98 -7.495 c -3.421 -1.248 -5.849 -2.417 -7.283 -3.507 c -1.435 -1.09 -2.642 -2.676 -3.621 -4.759 c -0.98 -2.083 -1.469 -4.214 -1.469 -6.394 c 0 -4.827 1.573 -8.745 4.717 -11.752 c 3.146 -3.007 7.256 -4.511 12.332 -4.511 C 47.952 7.773 53 9.663 57.083 13.442 Z",
+          Q:"M 60.68 55.555 l 6.687 7.712 l -7.909 5.011 l -6.096 -7.355 c -4.578 1.674 -8.673 2.51 -12.285 2.51 c -8.025 0 -14.608 -2.669 -19.751 -8.008 c -5.143 -5.338 -7.713 -12.187 -7.713 -20.546 c 0 -6.896 2.503 -13.124 7.511 -18.684 c 5.007 -5.559 11.635 -8.339 19.884 -8.339 c 7.724 0 14.228 2.648 19.512 7.943 c 5.282 5.296 7.924 11.818 7.924 19.567 C 68.443 43.31 65.855 50.039 60.68 55.555 Z M 45.7 51.97 l -5.727 -6.789 l 7.696 -5.006 l 5.282 6.192 c 2.134 -2.367 3.201 -5.837 3.201 -10.406 c 0 -5.259 -1.379 -9.45 -4.138 -12.575 c -2.759 -3.125 -6.429 -4.688 -11.008 -4.688 c -4.442 0 -8.069 1.55 -10.883 4.649 s -4.221 7.102 -4.221 12.007 c 0 4.987 1.35 9.086 4.05 12.296 s 6.118 4.815 10.25 4.815 C 41.746 52.466 43.578 52.301 45.7 51.97 Z",
+          A:"M 36.47 8.518 h 9.072 l 22.135 54.335 H 55.892 l -4.349 -10.677 H 30.691 l -4.26 10.677 H 14.708 L 36.47 8.518 Z M 41.007 26.313 l -6.388 16.015 h 12.912 L 41.007 26.313 Z"
+        },
         currentDrawCommand:"C",
         startingAnchor:undefined,
         reserveAnchor:undefined,
         pointSatelites:[],
         shapes:[],
-        selectedShape:-1
+        selectedShape:-1,
+        tempShapePoints:[],
+        shapeMoveOrigin:undefined,
+        shouldStartShape:true,
+        controlDimensions:{width:120,height:120,sideRotationHandle:10,sideRadiusHandle:10,endPoint:8,anchorPoint:4,rx:{x:-16,y:22,length:32,baseWidth:6},ry:{x:-22,y:-16,length:32,baseWidth:6}},
+        sidePanlEditing:false,
+        controlPosition:{}
       },
       methods:{
+        inportPath:function(_path){
+          var self = this;
+          self.$data.points = v4v.pathTransformer(_path).primedRawList();
+          self.$data.shapes.push({points:v4v.pathTransformer(_path).primedRawList(),fill:"#00cc00",stroke:"transparent",strokeWidth:"0"});
+          self.$data.selectedShape = self.$data.shapes.length-1;
+        },
+        onCheckArchClicked:function(e){
+          var self = this;
+          var pointIndex = Number(e.currentTarget.getAttribute("point-index"));
+          var subIndex = Number(e.currentTarget.getAttribute("sub-index"));
+          var attrName = e.currentTarget.getAttribute("attribute-name");
+          self.$data.points[pointIndex][subIndex][attrName] = e.currentTarget.checked ? 1 : 0;
+          mapToShapes(self.$data);
+        },
         onStagePressed:function(e){
           var self = this;
 
@@ -55,13 +587,20 @@
 
           switch(self.$data.currentMode){
               case self.$data.modes.EDIT:{
+                //mapToShapes(self.$data);
+                //self.$data.showPoints = false;
+                self.$data.shouldStartShape = true;
+                self.$data.selectedShape = -1;
+                self.$data.points = [];
 
                 break;
               }
               case self.$data.modes.DRAW:
               {
-                if(self.$data.points.length<1){
+                
+                if(self.$data.points.length<1 || self.$data.shouldStartShape){
                   //self.$data.points.push({x:e.pageX,y:e.pageY,back:{x:e.pageX,y:e.pageY},forward:{x:e.pageX,y:e.pageY}});
+                  self.$data.shouldStartShape = false;
                   self.$data.points.push([{command:self.$data.drawCommands.M,x:e.pageX,y:e.pageY}]);
                   self.$data.selectedShape = self.$data.shapes.length;
 
@@ -107,7 +646,7 @@
                     }
                     case self.$data.drawCommands.A:{
                       var lastPoint = self.$data.points[self.$data.points.length-2][self.$data.points[self.$data.points.length-2].length-1];
-                      var dist = v4v.distance(lastPoint.x,lastPoint.y,e.pageX,e.pageY);
+                      var dist = 50;
                       self.$data.points.push([{command:self.$data.currentDrawCommand,x:e.pageX,y:e.pageY,rx:dist,ry:dist,angle:0,arc:0,sweep:1}]);
                       break;
                     }
@@ -119,6 +658,28 @@
               }
             }
 
+        },
+        shapeSelected:function(e){
+          var self = this;
+          var index = Number(e.currentTarget.getAttribute("shape-index"));
+          //onShapeSelected(index,self,e);
+          switch(self.$data.currentMode){
+            case self.$data.modes.EDIT:
+            {
+              //self.$data.movingShape = true;
+
+              //console.log("shapeSelected");
+              self.$data.shouldStartShape = true;
+              self.$data.selectedShape = index;
+              self.$data.shapeMoveOrigin = {x:e.pageX,y:e.pageY};
+
+              self.$data.points = JSON.parse(JSON.stringify(self.$data.shapes[self.$data.selectedShape].points));//self.$data.shapes[self.$data.selectedShape].points;
+              self.$data.tempShapePoints = JSON.parse(JSON.stringify(self.$data.points));
+              
+              break;
+            }
+          }
+          
         },
         onPointPress:function(e){
           var self = this;
@@ -141,7 +702,6 @@
 
                 if(self.$data.points[self.$data.points.length-1][0].command==self.$data.drawCommands.C){
                   self.$data.points.push([{x:self.$data.reserveAnchor.x,y:self.$data.reserveAnchor.y,command:self.$data.drawCommands.C},{x:self.$data.startingAnchor.x,y:self.$data.startingAnchor.y},{x:self.$data.points[self.$data.selectedPoint][0].x,y:self.$data.points[self.$data.selectedPoint][0].y}]);
-                  
                 }
 
 
@@ -277,11 +837,17 @@
           mouseMoved(this,e);
           self.$data.selectedPoint = -3;
           self.$data.pointSatelites = [];
+          self.$data.rxArchDrag = -1;
+          self.$data.ryArchDrag = -1;
+          self.$data.rotationArchDrag = -1;
+          self.$data.tempShapePoints = [];
+          self.$data.sidePanlEditing = false
+          //self.$data.movingShape = false;
 
 
           mapToShapes(self.$data);
         },
-        serializePoints:function(pointList){
+        serializePoints:function(pointList,_round){
           var self = this;
           var pointString = "";
           for(var i = 0;i<pointList.length;i++){
@@ -289,31 +855,31 @@
             pointString+=" ";
             for(var j = 0;j<pointList[i].length;j++){
               if(pointList[i][j].rx != undefined){
-                pointString+=pointList[i][j].rx;
+                pointString+= _round ? Math.round(pointList[i][j].rx) : pointList[i][j].rx;
                 pointString+=" ";
               }
               if(pointList[i][j].ry != undefined){
-                pointString+=pointList[i][j].ry;
+                pointString+= _round ? Math.round(pointList[i][j].ry) : pointList[i][j].ry;
                 pointString+=" ";
               }
               if(pointList[i][j].angle != undefined){
-                pointString+=pointList[i][j].angle;
+                pointString+= _round ? Math.round(pointList[i][j].angle) : pointList[i][j].angle;
                 pointString+=" ";
               }
               if(pointList[i][j].arc != undefined){
-                pointString+=pointList[i][j].arc;
+                pointString+= _round ? Math.round(pointList[i][j].arc) : pointList[i][j].arc;
                 pointString+=" ";
               }
               if(pointList[i][j].sweep != undefined){
-                pointString+=pointList[i][j].sweep;
+                pointString+= _round ? Math.round(pointList[i][j].sweep) : pointList[i][j].sweep;
                 pointString+=" ";
               }
               if(pointList[i][j].x != undefined){
-                pointString+=pointList[i][j].x;
+                pointString+= _round ? Math.round(pointList[i][j].x) : pointList[i][j].x;
                 pointString+=" ";
               }
               if(pointList[i][j].y != undefined){
-                pointString+=pointList[i][j].y;
+                pointString+= _round ? Math.round(pointList[i][j].y) : pointList[i][j].y;
                 pointString+=" ";
               }
               //rx:Number(values[0]),ry:Number(values[1]),angle:Number(values[2]),arc:Number(values[3]),sweep:Number(values[4])
@@ -348,15 +914,133 @@
             }
           }
           return yVal;
+        },
+        getHalfPoint:function(p,points,i){
+          return halPoint(p,points,i);
+        },
+        sweepToggle:function(index){
+          var self = this;
+          self.$data.points[index][0].sweep = self.$data.points[index][0].sweep == 0 ? 1 : 0; 
+          mapToShapes(self.$data);
+          
+        },
+        arcToggle:function(index){
+          var self = this;
+          self.$data.points[index][0].arc = self.$data.points[index][0].arc == 0 ? 1 : 0; 
+          mapToShapes(self.$data);
+          
+        },
+        onRXPressed:function(index,_sidePanelID){
+          var self = this;
+          self.$data.sidePanlEditing = _sidePanelID != undefined;
+          if(self.$data.sidePanlEditing){
+            var controlElement = document.getElementById(_sidePanelID);
+            self.$data.controlPosition = {x:controlElement.getBoundingClientRect().left,y:controlElement.getBoundingClientRect().top};
+          }
+          self.$data.rxArchDrag = index;
+          //console.log(self.$data.rxArchDrag);
+        },
+        onRYPressed:function(index,_sidePanelID){
+          var self = this;
+          self.$data.sidePanlEditing = _sidePanelID != undefined;
+          if(self.$data.sidePanlEditing){
+            var controlElement = document.getElementById(_sidePanelID);
+            self.$data.controlPosition = {x:controlElement.getBoundingClientRect().left,y:controlElement.getBoundingClientRect().top};
+          }
+          self.$data.ryArchDrag = index;
+        },
+        getRotationPosition:function(index,isX,inSidePanel,angleOffset){
+          var _angleOffset = angleOffset!=undefined ? angleOffset : 0;
+          var self = this;
+          var radius = inSidePanel ? self.$data.controlDimensions.width*.4 : 40;
+          var center = inSidePanel ? {x:self.$data.controlDimensions.width/2,y:self.$data.controlDimensions.height/2} : halPoint(self.$data.points[index],self.$data.points,index);
+          //return isX ? self.$data.points[index].x : self.$data.points[index].y;
+          return isX ? v4v.orbit(center.x,radius,self.$data.points[index][0].angle+_angleOffset,"cos") : v4v.orbit(center.y,radius,self.$data.points[index][0].angle+_angleOffset,"sin");
+        },
+        onRotationPressed:function(index,_sidePanelID){
+          var self = this;
+          self.$data.sidePanlEditing = _sidePanelID != undefined;
+          if(self.$data.sidePanlEditing){
+            var controlElement = document.getElementById(_sidePanelID);
+            self.$data.controlPosition = {x:controlElement.getBoundingClientRect().left,y:controlElement.getBoundingClientRect().top};
+          }
+          
+          self.$data.rotationArchDrag = index;
+        },
+        updatePoint:function(i,m,y,id){
+          var self = this;
+          self.$data.points[i][m][y] = document.getElementById(id).value;
+        },
+        onEnterTextValue:function(e){
+          var self = this;
+
+          //mapToShapes(self.$data);
+          self.$data.shapes[self.$data.selectedShape].points = self.$data.points;
+          setTimeout(function(){
+            self.$data.shapes[self.$data.selectedShape].points = self.$data.points;
+          },100);
+          //onShapeSelected(self.$data.selectedShape,self)
         }
+
       }
     });
 
+    
+
+    createDirectivesMenu();
+    
+
     _vm = mainVue;
+
+    function getScrollOffset(){
+      return document.getElementById("drawingContainer").getBoundingClientRect().top;
+    }
+
+    function createDirectivesMenu(){
+      var fg = v4v.flexGrid(5,5,document.getElementById("directiveMenu"),false);
+      fg.setOffset(20,20);
+      var sizefactor = .2;
+      fg.setGrowth(50*sizefactor);
+      fg.setRange(175*sizefactor);
+      fg.setGridSize(200*sizefactor);
+      
+      var dfProperties = {x:0,y:0,w:150*.8,h:160*.8};
+      var targetPaths = document.getElementById("directiveMenu").getElementsByTagName("path");
+      var cols = 4;
+      var h = 0;
+      var v = 0;
+      for(var i = 0;i<targetPaths.length;i++){
+        fg.addFlexElement(h,v,v4v.distortionFrame(dfProperties.x,dfProperties.y,dfProperties.w*.9,dfProperties.h*.9),targetPaths[i].getAttribute('d'),{x:7,y:9}, targetPaths[i].getAttribute('class'));
+        h++;
+        if(h>=cols){
+          h=0;
+          v++;
+        }
+      }
+
+      $("#directiveMenu").on("click",".flex-grid-border",function(e){
+
+        var directive = $(this).attr("class").split("directive-")[1];
+        mainVue.currentDrawCommand = directive;
+        console.log(mainVue.currentDrawCommand);
+      });
+
+      // var menuButtons = document.getElementById("directiveMenu").getElementsByClassName("flex-grid-border");
+      // console.log(menuButtons);
+      // for(var j = 0;j<menuButtons.length;j++){
+      //   menuButtons[j].addEventListener("click",function(e){
+      //     var directive = e.currentTarget.getAttribute("class").split("directive-")[1];
+      //     mainVue.currentDrawCommand = directive;
+      //     console.log(mainVue.currentDrawCommand);
+      //   });
+      // }
+
+
+    }
 
     function mapToShapes(_data){
       if(_data.selectedShape > -1){
-        _data.shapes[_data.selectedShape] = JSON.parse(JSON.stringify(_data.points));
+        _data.shapes[_data.selectedShape] = {points:JSON.parse(JSON.stringify(_data.points)),fill:"#00cc00",stroke:"transparent",strokeWidth:"0"};
       }
     }
 
@@ -374,46 +1058,149 @@
       _data.selectedSubPoint -1;
     }
 
+    function halPoint(p,points,i){
+      return {x:points[i][points[i].length-1].x,y:points[i][points[i].length-1].y}
+      //return {x:p[0].x+((points[i-1][points[i-1].length-1].x-p[0].x)/2),y:p[0].y+((points[i-1][points[i-1].length-1].y-p[0].y)/2)}
+    }
+
     function mouseMoved(self,e){
-      if(self.$data.selectedPoint>-3){
+      var archEditing = self.$data.rxArchDrag >= 0 || self.$data.ryArchDrag >= 0 || self.$data.rotationArchDrag >= 0;
+      if(self.$data.tempShapePoints.length>0){
+        var xShift = self.$data.shapeMoveOrigin.x - e.pageX;
+        var yShift = self.$data.shapeMoveOrigin.y - e.pageY;
+        //console.log("{x:"+xShift.toString()+",y:"+yShift.toString()+"}");
+        for(var i = 0;i<self.$data.points.length;i++){
+          for(var j = 0;j<self.$data.points[i].length;j++){
+
+            if(self.$data.points[i][j].x != undefined){
+              //console.log("positioning X");
+              self.$data.points[i][j].x = self.$data.tempShapePoints[i][j].x-xShift;
+            }
+            if(self.$data.points[i][j].y != undefined){
+              //console.log("positioning Y");
+              self.$data.points[i][j].y = self.$data.tempShapePoints[i][j].y-yShift;
+            }
+          }
+        }
+
+      }
+
+      else if(self.$data.selectedPoint>-3 || archEditing){
         switch(self.$data.currentMode){
           case self.$data.modes.EDIT:{
-            var draggedPoint;
-            if(self.$data.selectedPoint>=0){
-              //self.$data.points[self.$data.selectedPoint][self.$data.selectedSubPoint].x = self.$data.points[self.$data.selectedPoint][0].command == self.$data.drawCommands.V ? e.pageY : e.pageX;
-              if(self.$data.points[self.$data.selectedPoint][self.$data.selectedSubPoint].x != undefined){
-                self.$data.points[self.$data.selectedPoint][self.$data.selectedSubPoint].x = e.pageX;
-              }
-              if(self.$data.points[self.$data.selectedPoint][self.$data.selectedSubPoint].y != undefined){
-                self.$data.points[self.$data.selectedPoint][self.$data.selectedSubPoint].y = e.pageY;
-              }
-              
-              draggedPoint = self.$data.points[self.$data.selectedPoint][self.$data.selectedSubPoint];
-            }
-            else if(self.$data.selectedPoint==-1){
-              self.$data.reserveAnchor.x = e.pageX;
-              self.$data.reserveAnchor.y = e.pageY;
-              draggedPoint = self.$data.reserveAnchor;
-            }
-            else if(self.$data.selectedPoint==-2){
-              self.$data.startingAnchor.x = e.pageX;
-              self.$data.startingAnchor.y = e.pageY;
-              draggedPoint = self.$data.startingAnchor;
-            }
-            if(draggedPoint != undefined){
-              for(var i = 0;i<self.$data.pointSatelites.length;i++){
-                if(self.$data.pointSatelites[i].mode=="follow"){
-                  self.$data.pointSatelites[i].point.x = self.$data.pointSatelites[i].offset.x + e.pageX;
-                  self.$data.pointSatelites[i].point.y = self.$data.pointSatelites[i].offset.y + e.pageY;
+            if(archEditing){
+              //console.log(self.$data.rxArchDrag);
+              if(self.$data.sidePanlEditing){
+
+                if(self.$data.rxArchDrag >= 0){
+                  var _halfPoint = {x:self.$data.controlDimensions.sideRadiusHandle,y:self.$data.controlDimensions.sideRadiusHandle};
+                  var _pos = e.pageX-(_halfPoint.x+self.$data.controlPosition.x);
+                  if(_pos<0){
+                    _pos = 0;
+                  }
+                  else if(_pos>self.$data.controlDimensions.width-(self.$data.controlDimensions.sideRadiusHandle*2)){
+                    _pos = self.$data.controlDimensions.width-(self.$data.controlDimensions.sideRadiusHandle*2);
+                  }
+                  self.$data.points[self.$data.rxArchDrag][0].rx = _pos;
                 }
-                else if(self.$data.pointSatelites[i].mode=="mirror"){
-                  var angle = v4v.angle(draggedPoint.x,draggedPoint.y,self.$data.pointSatelites[i].center.x,self.$data.pointSatelites[i].center.y);
-                  self.$data.pointSatelites[i].point.x = v4v.orbit(self.$data.pointSatelites[i].center.x,self.$data.pointSatelites[i].dist,angle,"cos"); //self.$data.pointSatelites[i].offset.x + e.pageX;
-                  self.$data.pointSatelites[i].point.y = v4v.orbit(self.$data.pointSatelites[i].center.y,self.$data.pointSatelites[i].dist,angle,"sin");
+                else if(self.$data.ryArchDrag >= 0){
+                  var _halfPoint = {x:self.$data.controlDimensions.sideRadiusHandle,y:self.$data.controlDimensions.sideRadiusHandle};
+                  var _pos = e.pageX-(_halfPoint.x+self.$data.controlPosition.x);
+                  if(_pos<0){
+                    _pos = 0;
+                  }
+                  else if(_pos>self.$data.controlDimensions.width-(self.$data.controlDimensions.sideRadiusHandle*2)){
+                    _pos = self.$data.controlDimensions.width-(self.$data.controlDimensions.sideRadiusHandle*2);
+                  }
+                  self.$data.points[self.$data.ryArchDrag][0].ry = _pos;
+                  //var _halfPoint = halPoint(self.$data.points[self.$data.ryArchDrag],self.$data.points,self.$data.ryArchDrag);
+                  //self.$data.points[self.$data.ryArchDrag][0].ry = Math.abs(e.pageY-_halfPoint.y);
+                }
+                else if(self.$data.rotationArchDrag >= 0){
+                  var _halfPoint = {x:self.$data.controlDimensions.width/2,y:self.$data.controlDimensions.height/2};
+                  self.$data.points[self.$data.rotationArchDrag][0].angle = v4v.angle(_halfPoint.x+self.$data.controlPosition.x,_halfPoint.y+self.$data.controlPosition.y-getScrollOffset(),e.pageX,e.pageY);
+                  //self.$data.points[self.$data.ryArchDrag][0].ry = Math.abs(e.pageY-_halfPoint.y);
                 }
                 
               }
+              else{
+                if(self.$data.rxArchDrag >= 0){
+                  var _halfPoint = halPoint(self.$data.points[self.$data.rxArchDrag],self.$data.points,self.$data.rxArchDrag);
+                  var _rx = (e.pageX-_halfPoint.x-self.$data.controlDimensions.rx.x)/(self.$data.controlDimensions.rx.length/(self.$data.controlDimensions.width-(self.$data.controlDimensions.sideRadiusHandle*2)));
+                  // if(_rx > self.$data.controlDimensions.width-(self.$data.controlDimensions.sideRadiusHandle*2)){
+                  //   _rx = self.$data.controlDimensions.width-(self.$data.controlDimensions.sideRadiusHandle*2);
+                  // }
+                  // else if(_rx < 0){
+                  //   _rx = 0;
+                  // }
+                  if(_rx < 0){
+                    _rx = 0;
+                  }
+                  self.$data.points[self.$data.rxArchDrag][0].rx = _rx;
+
+                }
+                else if(self.$data.ryArchDrag >= 0){
+                  var _halfPoint = halPoint(self.$data.points[self.$data.ryArchDrag],self.$data.points,self.$data.ryArchDrag);
+                  var _ry = (self.$data.controlDimensions.width-(self.$data.controlDimensions.sideRadiusHandle*2))-((e.pageY-_halfPoint.y-self.$data.controlDimensions.ry.y)/(self.$data.controlDimensions.ry.length/(self.$data.controlDimensions.width-(self.$data.controlDimensions.sideRadiusHandle*2))));
+                  // if(_ry > self.$data.controlDimensions.width-(self.$data.controlDimensions.sideRadiusHandle*2)){
+                  //   _ry = self.$data.controlDimensions.width-(self.$data.controlDimensions.sideRadiusHandle*2);
+                  // }
+                  // else if(_ry < 0){
+                  //   _ry = 0;
+                  // }
+                  if(_ry < 0){
+                    _ry = 0;
+                  }
+                  self.$data.points[self.$data.ryArchDrag][0].ry = _ry;
+                }
+                else if(self.$data.rotationArchDrag >= 0){
+                  var _halfPoint = halPoint(self.$data.points[self.$data.rotationArchDrag],self.$data.points,self.$data.rotationArchDrag);
+                  self.$data.points[self.$data.rotationArchDrag][0].angle = v4v.angle(_halfPoint.x,_halfPoint.y,e.pageX,e.pageY);
+                  //self.$data.points[self.$data.ryArchDrag][0].ry = Math.abs(e.pageY-_halfPoint.y);
+                }
+              }
+              
             }
+            else{
+              var draggedPoint;
+              if(self.$data.selectedPoint>=0){
+                //self.$data.points[self.$data.selectedPoint][self.$data.selectedSubPoint].x = self.$data.points[self.$data.selectedPoint][0].command == self.$data.drawCommands.V ? e.pageY : e.pageX;
+                if(self.$data.points[self.$data.selectedPoint][self.$data.selectedSubPoint].x != undefined){
+                  self.$data.points[self.$data.selectedPoint][self.$data.selectedSubPoint].x = e.pageX;
+                }
+                if(self.$data.points[self.$data.selectedPoint][self.$data.selectedSubPoint].y != undefined){
+                  self.$data.points[self.$data.selectedPoint][self.$data.selectedSubPoint].y = e.pageY;
+                }
+                
+                draggedPoint = self.$data.points[self.$data.selectedPoint][self.$data.selectedSubPoint];
+              }
+              else if(self.$data.selectedPoint==-1){
+                self.$data.reserveAnchor.x = e.pageX;
+                self.$data.reserveAnchor.y = e.pageY;
+                draggedPoint = self.$data.reserveAnchor;
+              }
+              else if(self.$data.selectedPoint==-2){
+                self.$data.startingAnchor.x = e.pageX;
+                self.$data.startingAnchor.y = e.pageY;
+                draggedPoint = self.$data.startingAnchor;
+              }
+              if(draggedPoint != undefined){
+                for(var i = 0;i<self.$data.pointSatelites.length;i++){
+                  if(self.$data.pointSatelites[i].mode=="follow"){
+                    self.$data.pointSatelites[i].point.x = self.$data.pointSatelites[i].offset.x + e.pageX;
+                    self.$data.pointSatelites[i].point.y = self.$data.pointSatelites[i].offset.y + e.pageY;
+                  }
+                  else if(self.$data.pointSatelites[i].mode=="mirror"){
+                    var angle = v4v.angle(draggedPoint.x,draggedPoint.y,self.$data.pointSatelites[i].center.x,self.$data.pointSatelites[i].center.y);
+                    self.$data.pointSatelites[i].point.x = v4v.orbit(self.$data.pointSatelites[i].center.x,self.$data.pointSatelites[i].dist,angle,"cos"); //self.$data.pointSatelites[i].offset.x + e.pageX;
+                    self.$data.pointSatelites[i].point.y = v4v.orbit(self.$data.pointSatelites[i].center.y,self.$data.pointSatelites[i].dist,angle,"sin");
+                  }
+                  
+                }
+              }
+
+            }
+            
             
             // self.$data.points[self.$data.selectedPoint].x = e.pageX;
             // self.$data.points[self.$data.selectedPoint].y = e.pageY;
@@ -465,11 +1252,6 @@
                   backwardPoint.x = self.$data.points[self.$data.selectedPoint][currPointsLong].x-(forwardPoint.x-self.$data.points[self.$data.selectedPoint][currPointsLong].x);
                   backwardPoint.y = self.$data.points[self.$data.selectedPoint][currPointsLong].y-(forwardPoint.y-self.$data.points[self.$data.selectedPoint][currPointsLong].y);
                 }
-
-                
-
-
-                
                 break;
               }
               // case self.$data.drawCommands.S:{
@@ -482,14 +1264,41 @@
                 break;
               }
             }
-            
             break;
           }
-        }
-        
+        }        
       }
 
       mapToShapes(self.$data);
     }
+
+    function onShapeSelected(index,self,e){
+      switch(self.$data.currentMode){
+        case self.$data.modes.EDIT:
+        {
+          //self.$data.movingShape = true;
+
+          //console.log("shapeSelected");
+          if(e!=undefined){
+            self.$data.shouldStartShape = true;
+            self.$data.selectedShape = index;
+            self.$data.shapeMoveOrigin = {x:e.pageX,y:e.pageY};
+          }
+          
+
+          self.$data.points = JSON.parse(JSON.stringify(self.$data.shapes[self.$data.selectedShape].points));//self.$data.shapes[self.$data.selectedShape].points;
+          self.$data.tempShapePoints = JSON.parse(JSON.stringify(self.$data.points));
+          
+          break;
+        }
+      }
+    }
+    function inportPath(_path){
+      _vm.points = v4v.pathTransformer(_path).primedRawList();
+      _vm.shapes.push({points:v4v.pathTransformer(_path).primedRawList(),fill:"#00cc00",stroke:"transparent",strokeWidth:"0"});
+      _vm.selectedShape = _vm.shapes.length-1;
+    }
   })();
+
+
 </script>
