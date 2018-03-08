@@ -1383,7 +1383,7 @@ var v4v = (function() {
             }
 
             function deleteClicked(){
-                _element.parentNode.removeChild(_element);
+                _element.parentNode.parentNode.removeChild(_element.parentNode);
                 removeResizor();
                 if(_deleteHandler != undefined){
                     _deleteHandler();
