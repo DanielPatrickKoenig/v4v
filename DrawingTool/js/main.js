@@ -84,7 +84,8 @@ var _vm;
       onStagePressed:function(e){
         var self = this;
 
-        
+        self.$data.toggledPointIndex = -1;
+        closeDirectiveDetails();
         self.$data.pointCreationOrigin = {x:e.pageX,y:e.pageY};
 
         switch(self.$data.currentMode){
@@ -176,6 +177,10 @@ var _vm;
 
             //console.log("shapeSelected");
             self.$data.shouldStartShape = true;
+            if(self.$data.selectedShape != index){
+              self.$data.toggledPointIndex = -1;
+              closeDirectiveDetails();
+            }
             self.$data.selectedShape = index;
             self.$data.shapeMoveOrigin = {x:e.pageX,y:e.pageY};
 
@@ -571,6 +576,15 @@ var _vm;
   
 
   _vm = mainVue;
+
+  function closeDirectiveDetails(){
+    var inputs = document.getElementsByClassName("directive-list")[0].getElementsByTagName("input");
+    for(var i = 0;i<inputs.length;i++){
+      if(inputs[i].getAttribute("class")=="directive-toggle"){
+        inputs[i].checked = false;
+      }
+    }
+  }
 
   function createSizingCircles(_sd){
     //var pathEdges = document.getElementsByClassName("guide-path")[0].getBoundingClientRect();

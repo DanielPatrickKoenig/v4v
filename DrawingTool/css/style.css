@@ -381,7 +381,14 @@
   path.detail-guide-path{
     fill:transparent;
     stroke:#ff0000;
-    stroke-width:2;
+    stroke-width: 2px;
+    
+  }
+  path.detail-guide-path-s-t{
+    fill:transparent;
+    stroke:#ff0000;
+    stroke-width: 2px;
+    stroke-dasharray: 6,6;
   }
   circle.toggle-border{
     fill: transparent;

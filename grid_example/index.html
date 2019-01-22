@@ -1,0 +1,138 @@
+<html>
+    <head>
+        <style>
+            #mainStage{
+                width:400px;
+                height:400px;
+            }
+            rect{
+                stroke:#000000;
+            }
+        </style>
+    </head>
+    <body>
+        <script src="../js/v4v.js"></script>
+        <svg id="mainStage"></svg>
+
+        <!-- add any script tag cdn you would like -->
+
+        <img style="float:left;" src="https://lh3.googleusercontent.com/oEEhrLhsdb6_IgTlX1FAhHnLacAl13IJ0g39DbPeRNWfhUG9C56zmw1pAiK57yzGJ0__WcUapw=w327-h331-no" />
+        <ol style="float:left; max-width:400px;">
+            <li>Create a 5 x 5 grid of blocks.</li>
+            <li>Each row must have a different color.</li>
+            <li>Dragging a block vertically should move the entire column that block is in.</li>
+            <li>Dragging a block horizontally should move the entire row that block is in.</li>
+            <li>When blocks go outside the bounds of the grid they should wrap around to the other side.</li>
+            <li>The final product should look like the provided gif animation.</li>
+            <li>You can use any libraries/frameworks/language(s) you like to achieve this.<br />(Feel free to use something other than code pen) </li>
+            <li>There is no time limit.</li>
+        </ol>
+        <script>
+            window.addEventListener("load",function(e){
+            var stage = v4v.stage(document.getElementById("mainStage"));
+            var rectangles = [];
+            var colors = ["#ff0000","#00ff00","#0000ff","#ff00ff","#ffff00"];
+            var gridSize = colors.length;
+            var cellSize = 60;
+            var blockSize = cellSize*.8;
+            var selectionPosition;
+            var startPosition;
+            var lastPosition = {x:0,y:0};
+            var draggedGroup = [];
+            var moveCount = 0;
+            
+            var globalEventElement = document.getElementsByTagName("html")[0];
+            for(var v = 0;v<gridSize;v++){
+                for(var h = 0;h<gridSize;h++){
+                var rectangle = v4v.rect(stage,{x:(h*cellSize)+(blockSize/2),y:(v*cellSize)+(blockSize/2),width:blockSize,height:blockSize,fill:colors[h]});
+                //rectangle.Drag();
+                rectangle.getElement().addEventListener("mousedown",onCellDown);
+                rectangles.push({rectangle:rectangle,offset:{}});
+                }
+            }
+            
+            var gridBounds = {left:Number(rectangles[0].rectangle.attr("x")),top:Number(rectangles[0].rectangle.attr("y")),right:Number(rectangles[rectangles.length-1].rectangle.attr("x"))+blockSize,bottom:Number(rectangles[rectangles.length-1].rectangle.attr("y"))+blockSize};
+            function onCellDown(e){
+                moveCount = 0;
+                draggedGroup = []; 
+                startPosition = {x:e.pageX,y:e.pageY};
+                var x = e.currentTarget.getAttribute("x");
+                var y = e.currentTarget.getAttribute("y");
+                selectionPosition = {x:x,y:y};
+                
+                for(var i = 0;i<rectangles.length;i++){
+                rectangles[i].offset = {x:Number(rectangles[i].rectangle.attr("x"))-e.pageX,y:Number(rectangles[i].rectangle.attr("y"))-e.pageY};
+                }
+                globalEventElement.addEventListener("mousemove",onMoved);
+                globalEventElement.addEventListener("mouseup",onUp);
+                //var xMatches = getPositionMatches("x",x);
+                //var yMatches = getPositionMatches("y",y);
+                    
+                
+            }
+            function onMoved(e){
+                var movingLeft = lastPosition.x>e.pageX;
+                var movingUp = lastPosition.y>e.pageY;
+                if(startPosition.vertical == undefined && moveCount>10){
+                startPosition.vertical = Math.abs(startPosition.x - e.pageX) < Math.abs(startPosition.y - e.pageY);
+                draggedGroup = startPosition.vertical ? getPositionMatches("x",selectionPosition.x) : getPositionMatches("y",selectionPosition.y);
+            }
+                console.log(draggedGroup);
+                if(startPosition.vertical != undefined){
+                for(var i = 0;i<draggedGroup.length;i++){
+                    if(Number(draggedGroup[i].rectangle.attr("x"))+(blockSize/2)>gridBounds.right && !movingLeft){
+                    draggedGroup[i].offset.x-=(gridBounds.right-gridBounds.left)+(cellSize-blockSize);
+                    }
+                    else if(Number(draggedGroup[i].rectangle.attr("x"))+(blockSize/2)<gridBounds.left && movingLeft){
+                    draggedGroup[i].offset.x+=(gridBounds.right-gridBounds.left)+(cellSize-blockSize);
+                    }
+                    if(Number(draggedGroup[i].rectangle.attr("y"))+(blockSize/2)>gridBounds.bottom && !movingUp){
+                    draggedGroup[i].offset.y-=(gridBounds.bottom-gridBounds.top)+(cellSize-blockSize);
+                    }
+                    else if(Number(draggedGroup[i].rectangle.attr("y"))+(blockSize/2)<gridBounds.top && movingUp){
+                    draggedGroup[i].offset.y+=(gridBounds.bottom-gridBounds.top)+(cellSize-blockSize);
+                    }
+                    var property = startPosition.vertical ? "y" : "x";
+                    var value = startPosition.vertical ? e.pageY+draggedGroup[i].offset.y : e.pageX+draggedGroup[i].offset.x;
+                    draggedGroup[i].rectangle.attr(property,value);
+                    
+                }
+                }
+                lastPosition = {x:e.pageX,y:e.pageY};
+                
+                moveCount++;
+            }
+            function onUp(e){
+                globalEventElement.removeEventListener("mousemove",onMoved);
+                globalEventElement.removeEventListener("mouseup",onUp);
+                var property = startPosition.vertical ? "y" : "x";
+                var value = startPosition.vertical ? gridBounds.left : gridBounds.top;
+                var lowestValue = 999999;
+                var resetOffset = 0;
+                for(var i = 0;i<draggedGroup.length;i++){
+                if(Number(draggedGroup[i].rectangle.attr(property))<lowestValue){
+                    lowestValue = Number(draggedGroup[i].rectangle.attr(property));
+                    resetOffset = value-Number(draggedGroup[i].rectangle.attr(property));
+                }
+                }
+                for(var j = 0;j<draggedGroup.length;j++){
+                draggedGroup[j].rectangle.attr(property,Number(draggedGroup[j].rectangle.attr(property))+resetOffset);
+                }
+                
+                startPosition = undefined;
+                
+            }
+            function getPositionMatches(property,value){
+                var matches = [];
+                for(var i = 0;i<rectangles.length;i++){
+                if(Number(rectangles[i].rectangle.attr(property)) == Number(value)){
+                    matches.push(rectangles[i]);
+                }
+                }
+                return matches;
+            }
+            
+            });
+        </script>
+    </body>
+</html>
